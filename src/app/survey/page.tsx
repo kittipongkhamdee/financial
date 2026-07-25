@@ -16,7 +16,7 @@ import {
 } from "@/components/ui";
 import { CONDITIONS, CURRENT_BE_YEAR, FLOORS } from "@/lib/constants";
 import { findByAssetCode, humanizeError, insertItem, uploadPhoto } from "@/lib/data";
-import { describeLocation, parseNumber } from "@/lib/format";
+import { describeLocation, parseNumber, shiftAssetCodeSerial } from "@/lib/format";
 import { useLastRoom, useMasters } from "@/lib/hooks";
 import type { AssetCondition, AssetItem } from "@/lib/types";
 
@@ -76,6 +76,14 @@ export default function SurveyPage() {
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
+
+  // เพิ่ม/ลดจำนวน → ขยับเลขวิ่งท้ายหมายเลขครุภัณฑ์ตามไปด้วย (ของหลายชิ้นมักได้เลขต่อเนื่องกัน)
+  const setQuantity = (value: number) =>
+    setDraft((d) => ({
+      ...d,
+      quantity: value,
+      assetCode: shiftAssetCodeSerial(d.assetCode, value - d.quantity),
+    }));
 
   const buildingNames = useMemo(() => masters?.buildings.map((b) => b.name) ?? [], [masters]);
   const unitNames = useMemo(() => masters?.units.map((u) => u.name) ?? [], [masters]);
@@ -313,7 +321,7 @@ export default function SurveyPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="จำนวน" required group>
-                <QuantityStepper value={draft.quantity} onChange={(v) => set("quantity", v)} />
+                <QuantityStepper value={draft.quantity} onChange={setQuantity} />
               </Field>
               <Field label="หน่วย" group>
                 <ChipGroup options={unitNames.slice(0, 4)} value={draft.unit} onChange={(v) => set("unit", v)} allowOther />
@@ -352,10 +360,10 @@ export default function SurveyPage() {
 
             {duplicate ? <Alert tone="warn">{duplicate}</Alert> : null}
 
-            <details className="rounded-xl border border-stone-200 bg-white px-4 py-3">
-              <summary className="cursor-pointer font-display text-sm font-medium text-stone-700">
+            <div className="rounded-xl border border-stone-200 bg-white px-4 py-3">
+              <p className="font-display text-sm font-medium text-stone-700">
                 ข้อมูลเพิ่มเติม (ปี · แหล่งงบ · ราคา)
-              </summary>
+              </p>
               <div className="mt-3 space-y-3">
                 <Field label={`ปีที่ได้มา (พ.ศ.)`}>
                   <input
@@ -390,7 +398,7 @@ export default function SurveyPage() {
                   />
                 </Field>
               </div>
-            </details>
+            </div>
           </>
         ) : null}
 

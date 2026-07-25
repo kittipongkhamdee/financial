@@ -19,7 +19,7 @@ import {
   submitDrafts,
   uploadPhoto,
 } from "@/lib/data";
-import { formatBaht, formatCount, parseNumber } from "@/lib/format";
+import { formatBaht, formatCount, parseNumber, shiftAssetCodeSerial } from "@/lib/format";
 import { useLastRoom, useMasters, useProfile } from "@/lib/hooks";
 import type { AssetCondition, AssetItem } from "@/lib/types";
 
@@ -362,7 +362,13 @@ export default function EntryPage() {
                     min={1}
                     className="w-full rounded border border-transparent px-2 py-1.5 text-center outline-none hover:border-stone-200 focus:border-sky-600"
                     value={row.quantity}
-                    onChange={(e) => updateRow(row.key, { quantity: Math.max(1, Number(e.target.value) || 1) })}
+                    onChange={(e) => {
+                      const nextQty = Math.max(1, Number(e.target.value) || 1);
+                      updateRow(row.key, {
+                        quantity: nextQty,
+                        assetCode: shiftAssetCodeSerial(row.assetCode, nextQty - row.quantity),
+                      });
+                    }}
                   />
                 </td>
                 <td className="px-3 py-1.5">
