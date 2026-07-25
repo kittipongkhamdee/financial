@@ -53,7 +53,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && pathname === "/login") {
+  // ผู้ใช้โหมดทั่วไปยังต้องเข้าหน้า /login ได้ เผื่อเจ้าหน้าที่พัสดุจะล็อกอินด้วยอีเมล
+  if (user && !user.is_anonymous && pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";

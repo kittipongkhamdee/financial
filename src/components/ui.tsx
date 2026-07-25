@@ -5,26 +5,43 @@ import { invalidatePhotoUrl, signedPhotoUrl } from "@/lib/data";
 
 /* ---------- ฟอร์ม ---------- */
 
+/**
+ * หัวข้อ + ตัวกรอกหนึ่งชุด
+ *
+ * `group` ต้องใส่เมื่อข้างในเป็นปุ่มหลายปุ่ม (ชิป/ปุ่ม − +) ไม่ใช่ช่องกรอกเดียว
+ * เพราะ <label> จะจับปุ่มตัวแรกเป็น control ของตัวเอง แล้ว screen reader
+ * จะอ่านชื่อปุ่มนั้นเป็นข้อความทั้งกลุ่มแทนข้อความบนปุ่ม
+ */
 export function Field({
   label,
   hint,
   required,
+  group,
   children,
 }: {
   label: string;
   hint?: string;
   required?: boolean;
+  group?: boolean;
   children: ReactNode;
 }) {
-  return (
-    <label className="block">
+  const inner = (
+    <>
       <span className="mb-1.5 flex items-baseline gap-1.5 text-sm font-medium text-stone-700">
         {label}
         {required ? <span className="text-rose-600">*</span> : <span className="text-xs font-normal text-stone-400">ไม่บังคับ</span>}
       </span>
       {children}
       {hint ? <span className="mt-1 block text-xs leading-relaxed text-stone-500">{hint}</span> : null}
-    </label>
+    </>
+  );
+
+  return group ? (
+    <div role="group" aria-label={label} className="block">
+      {inner}
+    </div>
+  ) : (
+    <label className="block">{inner}</label>
   );
 }
 
@@ -77,6 +94,8 @@ export function ChipGroup({
         <button
           key={option}
           type="button"
+          aria-label={option}
+          aria-pressed={value === option}
           onClick={() => onChange(option)}
           className={
             "rounded-full border px-3.5 py-2 text-sm transition " +

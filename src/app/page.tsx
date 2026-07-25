@@ -41,6 +41,9 @@ export default async function HomePage() {
   const totalValue = rows.reduce((sum, r) => sum + (r.price ?? 0) * (r.quantity ?? 1), 0);
   const rooms = new Set(rows.map((r) => r.room)).size;
 
+  const isGuest = user!.is_anonymous === true;
+  const unsent = (byStatus.draft ?? 0) + (byStatus.rejected ?? 0);
+
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 px-5 py-8">
       <header className="flex items-start justify-between gap-4">
@@ -52,16 +55,35 @@ export default async function HomePage() {
             {round?.name ?? "ยังไม่เปิดรอบสำรวจ"}
           </h1>
           <p className="mt-1 text-sm text-stone-600">
-            {profile?.full_name ?? "ครูผู้กรอก"}
-            {profile?.department ? ` · ${profile.department}` : ""}
+            {isGuest ? "โหมดใช้งานทั่วไป — ไม่ต้องล็อกอิน" : profile?.full_name ?? "ครูผู้กรอก"}
+            {!isGuest && profile?.department ? ` · ${profile.department}` : ""}
           </p>
         </div>
         <form action="/auth/signout" method="post">
           <button className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-600">
-            ออกจากระบบ
+            {isGuest ? "ออกจากโหมดนี้" : "ออกจากระบบ"}
           </button>
         </form>
       </header>
+
+      {isGuest ? (
+        <p className="mt-4 rounded-xl border border-stone-200 bg-white px-4 py-3 text-xs leading-relaxed text-stone-600">
+          รายการที่กรอกจะอยู่ในเบราว์เซอร์นี้ จนกดส่งให้งานพัสดุ
+          {unsent > 0 ? (
+            <>
+              {" "}
+              — ตอนนี้ยังไม่ส่ง <strong className="text-stone-900">{unsent}</strong> รายการ
+              ถ้าออกจากโหมดนี้หรือล้างข้อมูลเบราว์เซอร์จะกลับมาดูไม่ได้
+            </>
+          ) : null}
+          <br />
+          เจ้าหน้าที่พัสดุ{" "}
+          <Link href="/login" className="text-sky-700 underline">
+            เข้าสู่ระบบด้วยอีเมล
+          </Link>{" "}
+          เพื่อดูรายการของทุกคน
+        </p>
+      ) : null}
 
       {!round ? (
         <p className="mt-8 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">

@@ -237,7 +237,7 @@ export default function SurveyPage() {
 
         {step === 1 ? (
           <>
-            <Field label="อาคาร" required>
+            <Field label="อาคาร" required group>
               <ChipGroup
                 options={buildingNames}
                 value={draft.building}
@@ -245,7 +245,7 @@ export default function SurveyPage() {
                 allowOther
               />
             </Field>
-            <Field label="ชั้น">
+            <Field label="ชั้น" group>
               <ChipGroup options={[...FLOORS]} value={draft.floor} onChange={(v) => set("floor", v)} />
             </Field>
             <Field
@@ -282,7 +282,7 @@ export default function SurveyPage() {
 
         {step === 2 ? (
           <>
-            <Field label="หมวดหมู่">
+            <Field label="หมวดหมู่" group>
               <div className="flex flex-wrap gap-2">
                 {masters.categories.map((c) => (
                   <button
@@ -312,10 +312,10 @@ export default function SurveyPage() {
             </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="จำนวน" required>
+              <Field label="จำนวน" required group>
                 <QuantityStepper value={draft.quantity} onChange={(v) => set("quantity", v)} />
               </Field>
-              <Field label="หน่วย">
+              <Field label="หน่วย" group>
                 <ChipGroup options={unitNames.slice(0, 4)} value={draft.unit} onChange={(v) => set("unit", v)} allowOther />
               </Field>
             </div>

@@ -5,12 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Alert, Field, inputClass } from "@/components/ui";
 
+type Mode = "guest" | "signin" | "signup";
+
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const nextPath = params.get("next") || "/";
 
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<Mode>("guest");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -18,6 +20,29 @@ export function LoginForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  function done() {
+    router.replace(nextPath);
+    router.refresh();
+  }
+
+  /** เข้าใช้งานทั่วไป — ไม่ต้องสมัคร ไม่ต้องกรอกชื่อ */
+  async function enterAsGuest() {
+    setBusy(true);
+    setError(null);
+    const { error } = await supabaseBrowser().auth.signInAnonymously();
+    setBusy(false);
+
+    if (error) {
+      setError(
+        error.message.toLowerCase().includes("anonymous")
+          ? "ยังไม่ได้เปิดโหมดใช้งานทั่วไปในระบบ — แจ้งผู้ดูแลให้เปิด Anonymous sign-ins ที่ Supabase (Authentication → Sign In / Providers)"
+          : error.message,
+      );
+      return;
+    }
+    done();
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,8 +81,7 @@ export function LoginForm() {
       }
     }
 
-    router.replace(nextPath);
-    router.refresh();
+    done();
   }
 
   return (
@@ -67,79 +91,131 @@ export function LoginForm() {
           ระบบบริหารงบประมาณโรงเรียน
         </p>
         <h1 className="mt-1 font-display text-2xl font-bold text-stone-900">สำรวจครุภัณฑ์</h1>
-        <p className="mt-1 text-sm text-stone-600">
-          {mode === "signin" ? "เข้าสู่ระบบเพื่อเริ่มกรอกแบบสำรวจ" : "สร้างบัญชีสำหรับครูผู้กรอก"}
-        </p>
+        <p className="mt-1 text-sm text-stone-600">แบบสำรวจครุภัณฑ์รายห้อง ปีการศึกษา 2569</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-        {mode === "signup" ? (
-          <>
-            <Field label="ชื่อ–สกุล" required>
-              <input
-                className={inputClass}
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="เช่น สมพร ใจดี"
-                required
-              />
-            </Field>
-            <Field label="กลุ่มสาระ / ฝ่าย">
-              <input
-                className={inputClass}
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                placeholder="เช่น กลุ่มสาระวิทยาศาสตร์"
-              />
-            </Field>
-          </>
-        ) : null}
+      {mode === "guest" ? (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+            <button
+              type="button"
+              onClick={enterAsGuest}
+              disabled={busy}
+              className="w-full rounded-xl bg-sky-700 py-4 text-base font-semibold text-white transition active:bg-sky-800 disabled:opacity-60"
+            >
+              {busy ? "กำลังเข้าใช้งาน…" : "เข้าใช้งานทั่วไป"}
+            </button>
+            <p className="mt-2.5 text-center text-xs leading-relaxed text-stone-500">
+              ไม่ต้องสมัคร ไม่ต้องใส่รหัส กดแล้วกรอกแบบสำรวจได้เลย
+              <br />
+              รายการที่กรอกจะอยู่ในเบราว์เซอร์นี้จนกดส่งให้งานพัสดุ
+            </p>
+          </div>
 
-        <Field label="อีเมล" required>
-          <input
-            type="email"
-            autoComplete="email"
-            className={inputClass}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </Field>
+          {error ? <Alert tone="error">{error}</Alert> : null}
+          {notice ? <Alert tone="ok">{notice}</Alert> : null}
 
-        <Field label="รหัสผ่าน" required>
-          <input
-            type="password"
-            autoComplete={mode === "signin" ? "current-password" : "new-password"}
-            className={inputClass}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={6}
-            required
-          />
-        </Field>
-
-        {error ? <Alert tone="error">{error}</Alert> : null}
-        {notice ? <Alert tone="ok">{notice}</Alert> : null}
-
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-full rounded-xl bg-sky-700 py-3 text-base font-semibold text-white transition active:bg-sky-800 disabled:opacity-60"
+          <button
+            type="button"
+            onClick={() => {
+              setMode("signin");
+              setError(null);
+            }}
+            className="w-full py-2 text-sm text-sky-700"
+          >
+            เจ้าหน้าที่พัสดุ / ผู้ดูแลระบบ — เข้าสู่ระบบด้วยอีเมล
+          </button>
+        </div>
+      ) : (
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm"
         >
-          {busy ? "กำลังดำเนินการ…" : mode === "signin" ? "เข้าสู่ระบบ" : "สมัครใช้งาน"}
-        </button>
+          <p className="font-display text-sm font-semibold text-stone-800">
+            {mode === "signin" ? "เข้าสู่ระบบด้วยอีเมล" : "สร้างบัญชีเจ้าหน้าที่"}
+          </p>
 
-        <button
-          type="button"
-          onClick={() => {
-            setMode(mode === "signin" ? "signup" : "signin");
-            setError(null);
-          }}
-          className="w-full py-1 text-sm text-sky-700"
-        >
-          {mode === "signin" ? "ยังไม่มีบัญชี — สมัครใช้งาน" : "มีบัญชีแล้ว — เข้าสู่ระบบ"}
-        </button>
-      </form>
+          {mode === "signup" ? (
+            <>
+              <Field label="ชื่อ–สกุล" required>
+                <input
+                  className={inputClass}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="เช่น สมพร ใจดี"
+                  required
+                />
+              </Field>
+              <Field label="กลุ่มสาระ / ฝ่าย">
+                <input
+                  className={inputClass}
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  placeholder="เช่น งานพัสดุ"
+                />
+              </Field>
+            </>
+          ) : null}
+
+          <Field label="อีเมล" required>
+            <input
+              type="email"
+              autoComplete="email"
+              className={inputClass}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </Field>
+
+          <Field label="รหัสผ่าน" required>
+            <input
+              type="password"
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              className={inputClass}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
+              required
+            />
+          </Field>
+
+          {error ? <Alert tone="error">{error}</Alert> : null}
+          {notice ? <Alert tone="ok">{notice}</Alert> : null}
+
+          <button
+            type="submit"
+            disabled={busy}
+            className="w-full rounded-xl bg-sky-700 py-3 text-base font-semibold text-white transition active:bg-sky-800 disabled:opacity-60"
+          >
+            {busy ? "กำลังดำเนินการ…" : mode === "signin" ? "เข้าสู่ระบบ" : "สมัครใช้งาน"}
+          </button>
+
+          <div className="flex flex-col gap-1 text-center text-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setMode(mode === "signin" ? "signup" : "signin");
+                setError(null);
+              }}
+              className="py-1 text-sky-700"
+            >
+              {mode === "signin" ? "ยังไม่มีบัญชี — สมัครใช้งาน" : "มีบัญชีแล้ว — เข้าสู่ระบบ"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("guest");
+                setError(null);
+                setNotice(null);
+              }}
+              className="py-1 text-stone-500"
+            >
+              ‹ กลับไปเข้าใช้งานทั่วไป
+            </button>
+          </div>
+        </form>
+      )}
     </main>
   );
 }

@@ -298,7 +298,7 @@ function ItemEditor({
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="จำนวน" required>
+        <Field label="จำนวน" required group>
           <QuantityStepper value={quantity} onChange={setQuantity} />
         </Field>
         <Field label="หน่วย">
@@ -321,7 +321,7 @@ function ItemEditor({
         </select>
       </Field>
 
-      <Field label="สภาพการใช้งาน" required>
+      <Field label="สภาพการใช้งาน" required group>
         <div className="flex flex-wrap gap-2">
           {CONDITIONS.map((c) => (
             <button
@@ -363,7 +363,7 @@ function ItemEditor({
         <textarea rows={2} className={inputClass} value={note} onChange={(e) => setNote(e.target.value)} />
       </Field>
 
-      <Field label={item.photo_path ? "เปลี่ยนรูป" : "เพิ่มรูป"} required={!item.photo_path}>
+      <Field label={item.photo_path ? "เปลี่ยนรูป" : "เพิ่มรูป"} required={!item.photo_path} group>
         {item.photo_path && !newPhoto ? (
           <div className="flex items-center gap-3">
             <PhotoThumb path={item.photo_path} className="h-20 w-20" />
