@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { signedPhotoUrl } from "@/lib/data";
+import { invalidatePhotoUrl, signedPhotoUrl } from "@/lib/data";
 
 /* ---------- ฟอร์ม ---------- */
 
@@ -162,6 +162,7 @@ export function PhotoThumb({
 
 function SignedPhoto({ path, className }: { path: string; className: string }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -171,13 +172,25 @@ function SignedPhoto({ path, className }: { path: string; className: string }) {
     return () => {
       alive = false;
     };
-  }, [path]);
+  }, [path, attempt]);
 
   return (
     <div className={`${className} shrink-0 overflow-hidden rounded-md bg-stone-100`}>
       {url ? (
         // eslint-disable-next-line @next/next/no-img-element -- signed URL ของ Supabase หมดอายุ ไม่เหมาะกับ next/image optimizer
-        <img src={url} alt="รูปครุภัณฑ์" className="h-full w-full object-cover" />
+        <img
+          src={url}
+          alt="รูปครุภัณฑ์"
+          className="h-full w-full object-cover text-[0px]"
+          onError={() => {
+            // URL หมดอายุระหว่างเปิดหน้าไว้นาน → ขอใหม่หนึ่งครั้ง
+            if (attempt === 0) {
+              invalidatePhotoUrl(path);
+              setUrl(null);
+              setAttempt(1);
+            }
+          }}
+        />
       ) : null}
     </div>
   );

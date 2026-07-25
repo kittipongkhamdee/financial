@@ -199,6 +199,11 @@ export async function removePhoto(path: string): Promise<void> {
 
 const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
 
+/** ทิ้ง URL ที่ใช้ไม่ได้แล้ว (เช่นหมดอายุระหว่างเปิดหน้าไว้นาน) เพื่อขอใหม่ */
+export function invalidatePhotoUrl(path: string) {
+  signedUrlCache.delete(path);
+}
+
 /** signed URL อายุ 1 ชม. — cache ไว้ในหน่วยความจำ ไม่ต้องขอซ้ำทุกครั้งที่ re-render */
 export async function signedPhotoUrl(path: string): Promise<string | null> {
   const hit = signedUrlCache.get(path);
