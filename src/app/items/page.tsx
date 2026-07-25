@@ -28,7 +28,7 @@ import {
   updateItem,
   uploadPhoto,
 } from "@/lib/data";
-import { formatBaht, formatCount, parseNumber, shiftAssetCodeSerial } from "@/lib/format";
+import { formatBaht, formatCount, parseNumber } from "@/lib/format";
 import { useMasters } from "@/lib/hooks";
 import type { AssetCondition, AssetItem, Masters } from "@/lib/types";
 
@@ -259,12 +259,6 @@ function ItemEditor({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // เพิ่ม/ลดจำนวน → ขยับเลขวิ่งท้ายหมายเลขครุภัณฑ์ตามไปด้วย
-  function handleQuantityChange(value: number) {
-    setAssetCode((code) => shiftAssetCodeSerial(code, value - quantity));
-    setQuantity(value);
-  }
-
   async function save() {
     setBusy(true);
     setError(null);
@@ -305,7 +299,7 @@ function ItemEditor({
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="จำนวน" required group>
-          <QuantityStepper value={quantity} onChange={handleQuantityChange} />
+          <QuantityStepper value={quantity} onChange={setQuantity} />
         </Field>
         <Field label="หน่วย">
           <input className={inputClass} value={unit} onChange={(e) => setUnit(e.target.value)} />

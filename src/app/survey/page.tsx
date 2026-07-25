@@ -28,7 +28,6 @@ type Draft = {
   name: string;
   quantity: number;
   unit: string;
-  assetCode: string;
   untagged: boolean;
   acquiredYear: string;
   budgetSourceId: string | null;
@@ -42,7 +41,6 @@ const EMPTY_ITEM = {
   name: "",
   quantity: 1,
   unit: "",
-  assetCode: "",
   untagged: false,
   acquiredYear: "",
   budgetSourceId: null,
@@ -71,19 +69,54 @@ export default function SurveyPage() {
   }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [duplicate, setDuplicate] = useState<string | null>(null);
+  // แต่ละชิ้นมีหมายเลขครุภัณฑ์เป็นของตัวเอง — จำนวนช่องกรอกจึงต้องตรงกับ "จำนวน"
+  // touched แยกจาก value เพราะเลขที่ระบบเดาให้ยังไม่ถือว่าผู้ใช้ยืนยัน —
+  // ถ้าแก้ช่องก่อนหน้า เลขเดาในช่องที่ยังไม่ touched จะขยับตามได้อีก
+  const [codeEntries, setCodeEntries] = useState<{ value: string; touched: boolean }[]>([
+    { value: "", touched: false },
+  ]);
+  const [duplicates, setDuplicates] = useState<(string | null)[]>([null]);
   const [savedInRoom, setSavedInRoom] = useState<AssetItem[]>([]);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
-  // เพิ่ม/ลดจำนวน → ขยับเลขวิ่งท้ายหมายเลขครุภัณฑ์ตามไปด้วย (ของหลายชิ้นมักได้เลขต่อเนื่องกัน)
-  const setQuantity = (value: number) =>
-    setDraft((d) => ({
-      ...d,
-      quantity: value,
-      assetCode: shiftAssetCodeSerial(d.assetCode, value - d.quantity),
-    }));
+  // เพิ่ม/ลดจำนวน → ปรับจำนวนช่องกรอกหมายเลขครุภัณฑ์ให้ตรงกัน
+  // ช่องใหม่ที่เพิ่มมาเดาเลขต่อเนื่องจากช่องสุดท้ายให้ก่อน แก้เองได้ภายหลัง
+  function setQuantity(value: number) {
+    set("quantity", value);
+    setCodeEntries((entries) => {
+      if (value === entries.length) return entries;
+      if (value < entries.length) return entries.slice(0, value);
+      const next = [...entries];
+      for (let i = entries.length; i < value; i++) {
+        const prevValue = next[i - 1]?.value ?? "";
+        next.push({ value: prevValue.trim() ? shiftAssetCodeSerial(prevValue, 1) : "", touched: false });
+      }
+      return next;
+    });
+    setDuplicates((dups) =>
+      value === dups.length
+        ? dups
+        : value < dups.length
+          ? dups.slice(0, value)
+          : [...dups, ...Array(value - dups.length).fill(null)],
+    );
+  }
+
+  // แก้ช่องใดช่องหนึ่ง → ไล่เติมเลขต่อเนื่องให้ช่องถัดไปที่ผู้ใช้ยังไม่เคยแก้เอง
+  // (ทับเลขเดาเดิมได้ แต่ไม่ทับช่องที่ผู้ใช้พิมพ์ยืนยันแล้ว)
+  function updateAssetCode(index: number, value: string) {
+    setCodeEntries((entries) => {
+      const next = entries.map((e) => ({ ...e }));
+      next[index] = { value, touched: true };
+      for (let i = index + 1; i < next.length && !next[i].touched; i++) {
+        next[i] = { value: value.trim() ? shiftAssetCodeSerial(next[i - 1].value, 1) : "", touched: false };
+      }
+      return next;
+    });
+    setDuplicates((dups) => dups.map((d, i) => (i === index ? null : d)));
+  }
 
   const buildingNames = useMemo(() => masters?.buildings.map((b) => b.name) ?? [], [masters]);
   const unitNames = useMemo(() => masters?.units.map((u) => u.name) ?? [], [masters]);
@@ -95,18 +128,29 @@ export default function SurveyPage() {
     draft.condition !== null,
   ][step];
 
-  async function checkDuplicate(code: string) {
-    if (!masters?.round || !code.trim()) {
-      setDuplicate(null);
+  async function checkDuplicate(index: number, code: string) {
+    const trimmed = code.trim();
+    if (!trimmed) {
+      setDuplicates((dups) => dups.map((d, i) => (i === index ? null : d)));
       return;
     }
+
+    // ซ้ำกับชิ้นอื่นที่กรอกไว้ในหน้านี้เอง (ยังไม่ได้บันทึกลงระบบ)
+    if (codeEntries.some((e, i) => i !== index && e.value.trim() === trimmed)) {
+      setDuplicates((dups) => dups.map((d, i) => (i === index ? "ซ้ำกับชิ้นที่กรอกไว้ในหน้านี้เอง" : d)));
+      return;
+    }
+
+    if (!masters?.round) return;
     try {
-      const existing = await findByAssetCode(masters.round.id, code);
-      setDuplicate(
-        existing ? `เลขนี้กรอกไว้แล้ว: ${existing.name} (ห้อง ${existing.room})` : null,
+      const existing = await findByAssetCode(masters.round.id, trimmed);
+      setDuplicates((dups) =>
+        dups.map((d, i) =>
+          i === index ? (existing ? `เลขนี้กรอกไว้แล้ว: ${existing.name} (ห้อง ${existing.room})` : null) : d,
+        ),
       );
     } catch {
-      setDuplicate(null); // ตรวจไม่ได้ก็ปล่อยให้ unique index เป็นด่านสุดท้าย
+      // ตรวจไม่ได้ก็ปล่อยให้ unique index เป็นด่านสุดท้าย
     }
   }
 
@@ -121,27 +165,36 @@ export default function SurveyPage() {
     setError(null);
 
     try {
-      const photoPath = await uploadPhoto(photo);
-      const item = await insertItem(
-        masters.round.id,
-        {
-          building: draft.building.trim(),
-          floor: draft.floor.trim() || null,
-          room: draft.room.trim(),
-          category_id: draft.categoryId,
-          name: draft.name.trim(),
-          quantity: draft.quantity,
-          unit: draft.unit.trim() || null,
-          asset_code: draft.assetCode.trim() || null,
-          untagged: draft.untagged,
-          condition: draft.condition,
-          note: draft.note.trim() || null,
-          acquired_year: parseNumber(draft.acquiredYear),
-          budget_source_id: draft.budgetSourceId,
-          price: parseNumber(draft.price),
-        },
-        photoPath,
-      );
+      // ชื่อเดียวกันได้หลายชิ้น แต่ละชิ้นมีหมายเลขครุภัณฑ์ของตัวเอง → บันทึกแยกแถวตามจำนวนช่องที่กรอก
+      // อัปโหลดรูปแยกชุดต่อชิ้น (ไม่ใช้ path เดียวกัน) เผื่อภายหลังลบชิ้นใดชิ้นหนึ่งจะไม่ลากรูปของชิ้นอื่นหายไปด้วย
+      const codes = draft.untagged ? codeEntries.map(() => "") : codeEntries.map((e) => e.value);
+      const created: AssetItem[] = [];
+
+      for (const code of codes) {
+        const photoPath = await uploadPhoto(photo);
+        const trimmed = code.trim();
+        const item = await insertItem(
+          masters.round.id,
+          {
+            building: draft.building.trim(),
+            floor: draft.floor.trim() || null,
+            room: draft.room.trim(),
+            category_id: draft.categoryId,
+            name: draft.name.trim(),
+            quantity: 1,
+            unit: draft.unit.trim() || null,
+            asset_code: trimmed || null,
+            untagged: trimmed === "",
+            condition: draft.condition,
+            note: draft.note.trim() || null,
+            acquired_year: parseNumber(draft.acquiredYear),
+            budget_source_id: draft.budgetSourceId,
+            price: parseNumber(draft.price),
+          },
+          photoPath,
+        );
+        created.push(item);
+      }
 
       remember({
         building: draft.building.trim(),
@@ -155,12 +208,17 @@ export default function SurveyPage() {
       }
 
       // เริ่มชิ้นถัดไปในห้องเดิม — เก็บอาคาร/ชั้น/ห้องไว้ ล้างที่เหลือ
-      setSavedInRoom((prev) => [item, ...prev]);
+      setSavedInRoom((prev) => [...created, ...prev]);
       setPhoto(null);
-      setDuplicate(null);
       setDraft((d) => ({ building: d.building, floor: d.floor, room: d.room, ...EMPTY_ITEM }));
+      setCodeEntries([{ value: "", touched: false }]);
+      setDuplicates([null]);
       setStep(0);
-      show(`บันทึกแล้ว — ${item.name}`);
+      show(
+        created.length > 1
+          ? `บันทึกแล้ว ${created.length} ชิ้น — ${draft.name}`
+          : `บันทึกแล้ว — ${draft.name}`,
+      );
     } catch (e) {
       setError(humanizeError(e));
     } finally {
@@ -329,17 +387,31 @@ export default function SurveyPage() {
             </div>
 
             <Field
-              label="หมายเลขครุภัณฑ์ (พิมพ์จากป้าย)"
+              label={
+                draft.quantity > 1
+                  ? "หมายเลขครุภัณฑ์ (พิมพ์จากป้ายทีละชิ้น)"
+                  : "หมายเลขครุภัณฑ์ (พิมพ์จากป้าย)"
+              }
               hint='ยังไม่มีเลข? แตะ "ยังไม่ติดป้าย" แล้วพัสดุจะออกเลขให้ทีหลัง'
+              group={draft.quantity > 1}
             >
-              <input
-                className={inputClass}
-                value={draft.assetCode}
-                disabled={draft.untagged}
-                onChange={(e) => set("assetCode", e.target.value)}
-                onBlur={(e) => checkDuplicate(e.target.value)}
-                placeholder="7440-001-0001/2565"
-              />
+              <div className="space-y-2">
+                {codeEntries.map((entry, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    {draft.quantity > 1 ? (
+                      <span className="w-5 shrink-0 text-center text-xs text-stone-400">{i + 1}</span>
+                    ) : null}
+                    <input
+                      className={inputClass}
+                      value={entry.value}
+                      disabled={draft.untagged}
+                      onChange={(e) => updateAssetCode(i, e.target.value)}
+                      onBlur={(e) => checkDuplicate(i, e.target.value)}
+                      placeholder="7440-001-0001/2565"
+                    />
+                  </div>
+                ))}
+              </div>
             </Field>
 
             <label className="flex items-center gap-2 text-sm text-stone-700">
@@ -349,8 +421,8 @@ export default function SurveyPage() {
                 onChange={(e) => {
                   set("untagged", e.target.checked);
                   if (e.target.checked) {
-                    set("assetCode", "");
-                    setDuplicate(null);
+                    setCodeEntries((entries) => entries.map(() => ({ value: "", touched: false })));
+                    setDuplicates((dups) => dups.map(() => null));
                   }
                 }}
                 className="h-4 w-4 rounded border-stone-400"
@@ -358,7 +430,17 @@ export default function SurveyPage() {
               ยังไม่ติดป้าย — ให้พัสดุออกเลขให้
             </label>
 
-            {duplicate ? <Alert tone="warn">{duplicate}</Alert> : null}
+            {duplicates.some(Boolean) ? (
+              <div className="space-y-1.5">
+                {duplicates.map((msg, i) =>
+                  msg ? (
+                    <Alert key={i} tone="warn">
+                      {draft.quantity > 1 ? `ชิ้นที่ ${i + 1}: ${msg}` : msg}
+                    </Alert>
+                  ) : null,
+                )}
+              </div>
+            ) : null}
 
             <div className="rounded-xl border border-stone-200 bg-white px-4 py-3">
               <p className="font-display text-sm font-medium text-stone-700">
@@ -441,7 +523,11 @@ export default function SurveyPage() {
               </p>
               <p className="text-xs text-stone-500">
                 {describeLocation(draft.building || "—", draft.floor || null, draft.room || "—")}
-                {draft.assetCode ? ` · ${draft.assetCode}` : draft.untagged ? " · ยังไม่ติดป้าย" : ""}
+                {codeEntries.some((e) => e.value.trim())
+                  ? ` · ${codeEntries.map((e) => e.value).filter((v) => v.trim()).join(", ")}`
+                  : draft.untagged
+                    ? " · ยังไม่ติดป้าย"
+                    : ""}
               </p>
             </div>
           </>
