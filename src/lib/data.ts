@@ -2,6 +2,7 @@
 
 import { supabaseBrowser } from "./supabase/client";
 import { PHOTO_BUCKET } from "./constants";
+import { compressImage } from "./image";
 import type { AssetItem, AssetItemDraft, Masters, SurveyProfile } from "./types";
 
 /** ข้อความ error ที่อ่านรู้เรื่อง — ครูไม่ควรเห็น error code ของ Postgres */
@@ -171,7 +172,10 @@ export async function findByAssetCode(
   return (data as Pick<AssetItem, "id" | "name" | "room"> | null) ?? null;
 }
 
-/** อัปโหลดรูปเข้า bucket ปิด แล้วคืน path ที่เก็บลง asset_items.photo_path */
+/**
+ * อัปโหลดรูปเข้า bucket ที่ทุกคนดูร่วมกันได้ แล้วคืน path ที่เก็บลง asset_items.photo_path
+ * บีบอัด/ย่อรูปฝั่งเบราว์เซอร์ก่อนเสมอ — path ไม่แยกตามผู้กรอกแล้ว (ดูรูปของกันและกันได้)
+ */
 export async function uploadPhoto(file: File): Promise<string> {
   const supabase = supabaseBrowser();
   const {
@@ -179,13 +183,13 @@ export async function uploadPhoto(file: File): Promise<string> {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
 
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-  const path = `${user.id}/${crypto.randomUUID()}.${ext || "jpg"}`;
+  const { blob, ext, contentType } = await compressImage(file);
+  const path = `${crypto.randomUUID()}.${ext}`;
 
-  const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, file, {
+  const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, blob, {
     cacheControl: "3600",
     upsert: false,
-    contentType: file.type || "image/jpeg",
+    contentType,
   });
 
   if (error) throw error;
