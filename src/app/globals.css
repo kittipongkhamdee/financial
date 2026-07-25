@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-sarabun), "Sarabun", system-ui, sans-serif;
+  --font-display: var(--font-plex-thai), "IBM Plex Sans Thai", system-ui, sans-serif;
+}
+
+html {
+  /* กัน iOS ซูมเองเวลาแตะช่องกรอก */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: #f5f3ef;
+  color: #1c1917;
+}
+
+/* ซ่อนลูกศรขึ้น–ลงของ input[type=number] — ใช้ปุ่ม − / + แทน */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
