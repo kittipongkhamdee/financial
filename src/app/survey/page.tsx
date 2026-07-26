@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { PhotoCapture } from "@/components/PhotoCapture";
 import {
   Alert,
+  ButtonLabel,
   ChipGroup,
   Field,
   PhotoThumb,
@@ -555,14 +556,14 @@ export default function SurveyPage() {
               onClick={() => save("next")}
               className="w-full rounded-xl bg-sky-700 py-3.5 text-base font-semibold text-white transition active:bg-sky-800 disabled:bg-stone-300"
             >
-              {busy ? "กำลังบันทึก…" : "บันทึก + เพิ่มรายการถัดไป"}
+              <ButtonLabel busy={busy}>{busy ? "กำลังบันทึก…" : "บันทึก + เพิ่มรายการถัดไป"}</ButtonLabel>
             </button>
             <button
               disabled={!stepValid || busy}
               onClick={() => save("finish")}
               className="w-full rounded-xl border border-stone-300 py-3 text-base font-medium text-stone-700 disabled:opacity-50"
             >
-              บันทึกแล้วจบการสำรวจห้องนี้
+              <ButtonLabel busy={busy}>บันทึกแล้วจบการสำรวจห้องนี้</ButtonLabel>
             </button>
           </div>
         )}

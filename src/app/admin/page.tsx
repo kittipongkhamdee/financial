@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Alert, Toast, inputClass, useToast } from "@/components/ui";
+import { Alert, ButtonLabel, Toast, inputClass, useToast } from "@/components/ui";
 import {
   type AdminUserRow,
   type MasterTable,
@@ -184,7 +184,7 @@ function RoundsPanel({ onError, onDone }: { onError: (e: string | null) => void;
             onClick={handleCreate}
             className="rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:bg-stone-300"
           >
-            สร้างและเปิดรอบ
+            <ButtonLabel busy={busy}>สร้างและเปิดรอบ</ButtonLabel>
           </button>
         </div>
       </div>
@@ -216,7 +216,7 @@ function RoundsPanel({ onError, onDone }: { onError: (e: string | null) => void;
                   onClick={() => toggle(r)}
                   className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 disabled:opacity-50"
                 >
-                  {r.is_open ? "ปิดรอบนี้" : "เปิดรอบนี้"}
+                  <ButtonLabel busy={busy}>{r.is_open ? "ปิดรอบนี้" : "เปิดรอบนี้"}</ButtonLabel>
                 </button>
               </div>
             </li>
@@ -328,7 +328,7 @@ function MasterPanel({
           onClick={handleCreate}
           className="rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:bg-stone-300"
         >
-          เพิ่ม
+          <ButtonLabel busy={busyId === "new"}>เพิ่ม</ButtonLabel>
         </button>
       </div>
 
@@ -352,7 +352,9 @@ function MasterPanel({
                     : "border-emerald-500 text-emerald-700"
                 }`}
               >
-                {row.is_active ? "ปิดใช้งาน" : "เปิดใช้งานอีกครั้ง"}
+                <ButtonLabel busy={busyId === row.id}>
+                  {row.is_active ? "ปิดใช้งาน" : "เปิดใช้งานอีกครั้ง"}
+                </ButtonLabel>
               </button>
             </div>
 

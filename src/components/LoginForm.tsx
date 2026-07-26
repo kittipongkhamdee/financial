@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { Alert, Field, inputClass } from "@/components/ui";
+import { Alert, ButtonLabel, Field, inputClass } from "@/components/ui";
 
 type Mode = "guest" | "signin" | "signup";
 
@@ -103,7 +103,7 @@ export function LoginForm() {
               disabled={busy}
               className="w-full rounded-xl bg-sky-700 py-4 text-base font-semibold text-white transition active:bg-sky-800 disabled:opacity-60"
             >
-              {busy ? "กำลังเข้าใช้งาน…" : "เข้าใช้งานทั่วไป"}
+              <ButtonLabel busy={busy}>{busy ? "กำลังเข้าใช้งาน…" : "เข้าใช้งานทั่วไป"}</ButtonLabel>
             </button>
             <p className="mt-2.5 text-center text-xs leading-relaxed text-stone-500">
               ไม่ต้องสมัคร ไม่ต้องใส่รหัส กดแล้วกรอกแบบสำรวจได้เลย
@@ -188,7 +188,9 @@ export function LoginForm() {
             disabled={busy}
             className="w-full rounded-xl bg-sky-700 py-3 text-base font-semibold text-white transition active:bg-sky-800 disabled:opacity-60"
           >
-            {busy ? "กำลังดำเนินการ…" : mode === "signin" ? "เข้าสู่ระบบ" : "สมัครใช้งาน"}
+            <ButtonLabel busy={busy}>
+              {busy ? "กำลังดำเนินการ…" : mode === "signin" ? "เข้าสู่ระบบ" : "สมัครใช้งาน"}
+            </ButtonLabel>
           </button>
 
           <div className="flex flex-col gap-1 text-center text-sm">

@@ -215,6 +215,28 @@ function SignedPhoto({ path, className }: { path: string; className: string }) {
   );
 }
 
+/* ---------- ปุ่ม / สถานะกำลังทำงาน ---------- */
+
+/** วงกลมหมุนเล็ก ๆ บอกว่ากำลังทำงานอยู่ — ใส่ในปุ่มระหว่างรอผลจากเซิร์ฟเวอร์ */
+export function Spinner({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={`${className} animate-spin`} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  );
+}
+
+/** เนื้อหาปุ่ม — โผล่ spinner นำหน้าอัตโนมัติตอน busy กันปุ่มดูนิ่งเฉยระหว่างรอ network */
+export function ButtonLabel({ busy, children }: { busy: boolean; children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center justify-center gap-1.5">
+      {busy ? <Spinner /> : null}
+      {children}
+    </span>
+  );
+}
+
 /* ---------- แจ้งเตือน ---------- */
 
 export function Alert({ tone, children }: { tone: "error" | "warn" | "ok"; children: ReactNode }) {

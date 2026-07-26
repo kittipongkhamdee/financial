@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Alert, PhotoThumb, Toast, inputClass, useToast } from "@/components/ui";
+import { ItemEditor } from "@/components/ItemEditor";
+import { Alert, ButtonLabel, PhotoThumb, Toast, inputClass, useToast } from "@/components/ui";
 import {
   CONDITION_BADGE,
   CONDITION_LABEL,
@@ -11,10 +12,12 @@ import {
 } from "@/lib/constants";
 import {
   approveItems,
+  deleteItem,
   fetchProfilesByIds,
   fetchReviewItems,
   humanizeError,
   rejectItem,
+  removePhoto,
   updateItemAsStaff,
 } from "@/lib/data";
 import { describeLocation, formatBaht, formatCount } from "@/lib/format";
@@ -45,6 +48,7 @@ export default function ReviewPage() {
   const [search, setSearch] = useState("");
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const isStaff = profile ? profile.role === "supply" || profile.role === "admin" : null;
 
@@ -99,6 +103,21 @@ export default function ReviewPage() {
       setError(humanizeError(e));
     } finally {
       setBusy(id, false);
+    }
+  }
+
+  async function handleDelete(item: AssetItem) {
+    if (!confirm(`ลบ "${item.name}" ออกจากระบบถาวร?`)) return;
+    setBusy(item.id, true);
+    try {
+      await deleteItem(item.id);
+      if (item.photo_path) await removePhoto(item.photo_path);
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
+      show("ลบแล้ว");
+    } catch (e) {
+      setError(humanizeError(e));
+    } finally {
+      setBusy(item.id, false);
     }
   }
 
@@ -243,7 +262,7 @@ export default function ReviewPage() {
                     onClick={() => handleApprove(roomItems.map((i) => i.id))}
                     className="rounded-full border border-emerald-600 px-3 py-1 text-xs font-medium text-emerald-700 disabled:opacity-50"
                   >
-                    อนุมัติทั้งห้อง
+                    <ButtonLabel busy={roomItems.some((i) => busyIds.has(i.id))}>อนุมัติทั้งห้อง</ButtonLabel>
                   </button>
                 ) : null}
               </div>
@@ -251,6 +270,25 @@ export default function ReviewPage() {
                 {roomItems.map((item) => {
                   const teacher = profiles.get(item.surveyed_by);
                   const busy = busyIds.has(item.id);
+
+                  if (editingId === item.id && masters) {
+                    return (
+                      <li key={item.id}>
+                        <ItemEditor
+                          item={item}
+                          masters={masters}
+                          updateFn={updateItemAsStaff}
+                          onCancel={() => setEditingId(null)}
+                          onSaved={(updated) => {
+                            setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+                            setEditingId(null);
+                            show("แก้ไขแล้ว");
+                          }}
+                        />
+                      </li>
+                    );
+                  }
+
                   return (
                     <li key={item.id} className="rounded-xl border border-stone-200 bg-white p-3">
                       <div className="flex items-start gap-3">
@@ -302,7 +340,7 @@ export default function ReviewPage() {
                               onClick={() => handleApprove([item.id])}
                               className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white disabled:bg-stone-300"
                             >
-                              อนุมัติ
+                              <ButtonLabel busy={busy}>อนุมัติ</ButtonLabel>
                             </button>
                             <button
                               type="button"
@@ -317,6 +355,22 @@ export default function ReviewPage() {
                             </button>
                           </>
                         ) : null}
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => setEditingId(item.id)}
+                          className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 disabled:opacity-50"
+                        >
+                          แก้ไข
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => handleDelete(item)}
+                          className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-500 hover:border-rose-400 hover:text-rose-600 disabled:opacity-50"
+                        >
+                          <ButtonLabel busy={busy}>ลบ</ButtonLabel>
+                        </button>
                       </div>
 
                       {rejectingId === item.id ? (
@@ -334,7 +388,7 @@ export default function ReviewPage() {
                             onClick={() => handleReject(item.id)}
                             className="rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-medium text-white disabled:bg-stone-300"
                           >
-                            ยืนยันตีกลับ
+                            <ButtonLabel busy={busy}>ยืนยันตีกลับ</ButtonLabel>
                           </button>
                         </div>
                       ) : null}

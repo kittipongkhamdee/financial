@@ -26,6 +26,10 @@ export const viewport: Viewport = {
   themeColor: "#0369a1",
 };
 
+// Supabase อยู่ ap-southeast-1 (สิงคโปร์) — รันฟังก์ชันฝั่ง Vercel ที่ sin1 ด้วย
+// กันไม่ให้ทุก request ของหน้าแรก (Server Component) ต้องวิ่งข้ามทวีปไปกลับ
+export const preferredRegion = "sin1";
+
 export default function RootLayout({
   children,
 }: Readonly<{

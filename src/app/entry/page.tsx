@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Alert, PhotoThumb, Toast, inputClass, useToast } from "@/components/ui";
+import { Alert, ButtonLabel, PhotoThumb, Toast, inputClass, useToast } from "@/components/ui";
 import {
   CONDITIONS,
   CONDITION_BADGE,
@@ -493,7 +493,9 @@ export default function EntryPage() {
           onClick={saveAll}
           className="rounded-xl bg-sky-700 px-5 py-2.5 font-semibold text-white transition active:bg-sky-800 disabled:bg-stone-300"
         >
-          {busy ? "กำลังบันทึก…" : `บันทึกลงระบบ ${filledRows.length} รายการ`}
+          <ButtonLabel busy={busy}>
+            {busy ? "กำลังบันทึก…" : `บันทึกลงระบบ ${filledRows.length} รายการ`}
+          </ButtonLabel>
         </button>
         <Link href="/items" className="text-sm text-sky-700">
           ดูรายการทั้งหมดของฉัน ›
@@ -571,7 +573,7 @@ export default function EntryPage() {
                 onClick={handleSubmit}
                 className="mt-3 rounded-xl border border-sky-700 px-5 py-2.5 font-semibold text-sky-800 transition hover:bg-sky-50 disabled:opacity-50"
               >
-                ส่งให้พัสดุตรวจสอบ ({draftCount} รายการ)
+                <ButtonLabel busy={busy}>ส่งให้พัสดุตรวจสอบ ({draftCount} รายการ)</ButtonLabel>
               </button>
             ) : null}
           </>
