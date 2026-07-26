@@ -114,6 +114,12 @@ export default function PrintRegisterPage() {
             placeholder="ชื่อโรงเรียน / หน่วยงาน (แสดงบนหัวกระดาษ)"
             className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
           />
+          <Link
+            href="/items/register"
+            className="rounded-xl border border-sky-700 px-4 py-2 text-sm font-semibold text-sky-700"
+          >
+            การ์ดรายชิ้น (แบบราชการ)
+          </Link>
           <button
             type="button"
             onClick={() => window.print()}

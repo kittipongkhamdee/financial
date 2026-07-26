@@ -58,6 +58,18 @@ input[type="number"] {
     size: A4 landscape;
     margin: 10mm;
   }
+  /* การ์ดทะเบียนคุมทรัพย์สินรายชิ้น (/items/register) เป็นฟอร์ม A4 แนวตั้งต้นฉบับ ต่างจากตารางสรุปที่เป็นแนวนอน */
+  @page register-card {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+  .register-page {
+    page: register-card;
+    break-after: page;
+  }
+  .register-page:last-child {
+    break-after: auto;
+  }
   .no-print {
     display: none !important;
   }
