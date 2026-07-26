@@ -8,7 +8,7 @@ import { calculateDepreciation, type DepreciationResult } from "@/lib/depreciati
 import { fetchRegisterItems, humanizeError } from "@/lib/data";
 import { describeLocation, formatBaht } from "@/lib/format";
 import { useMasters, useProfile, useSchoolSettings } from "@/lib/hooks";
-import type { AssetItem, CategoryRow } from "@/lib/types";
+import { ACQUISITION_METHODS, type AssetItem, type CategoryRow } from "@/lib/types";
 
 /** ประเภทเงินตามแบบฟอร์มทางการมีแค่ 4 ช่อง ส่วนแหล่งงบของเราเป็นรายการเปิด — เดาช่องที่ใกล้เคียงที่สุดจากชื่อ */
 function matchFundType(budgetSourceName: string | null): "budget" | "offBudget" | "donation" | "other" {
@@ -139,16 +139,17 @@ export default function RegisterCardsPage() {
               <p className="mt-2">
                 ประเภท <Blank value={category?.name ?? null} minWidth="8rem" /> รหัส{" "}
                 <Blank value={item.asset_code} minWidth="7rem" /> ลักษณะ/คุณสมบัติ{" "}
-                <Blank value={item.note} minWidth="10rem" /> รุ่น/แบบ <Blank value={null} minWidth="8rem" />
+                <Blank value={item.spec} minWidth="10rem" /> รุ่น/แบบ <Blank value={item.model} minWidth="8rem" />
               </p>
 
               <p className="mt-1.5">
                 สถานที่ตั้ง/หน่วยงานที่รับผิดชอบ{" "}
                 <Blank value={describeLocation(item.building, item.floor, item.room)} minWidth="14rem" /> ชื่อผู้ขาย/ผู้รับจ้าง/ผู้บริจาค{" "}
-                <Blank value={null} minWidth="10rem" />
+                <Blank value={item.vendor_name} minWidth="10rem" />
               </p>
               <p className="mt-1.5">
-                ที่อยู่ <Blank value={null} minWidth="24rem" /> โทรศัพท์ <Blank value={null} minWidth="8rem" />
+                ที่อยู่ <Blank value={item.vendor_address} minWidth="24rem" /> โทรศัพท์{" "}
+                <Blank value={item.vendor_phone} minWidth="8rem" />
               </p>
 
               <p className="mt-2 flex flex-wrap items-center gap-3">
@@ -161,11 +162,9 @@ export default function RegisterCardsPage() {
               </p>
               <p className="mt-1 flex flex-wrap items-center gap-3">
                 <span className="shrink-0">วิธีการได้มา</span>
-                <Checkbox checked={false} label="ตกลงราคา" />
-                <Checkbox checked={false} label="สอบราคา" />
-                <Checkbox checked={false} label="ประกวดราคา" />
-                <Checkbox checked={false} label="วิธีพิเศษ" />
-                <Checkbox checked={false} label="รับบริจาค" />
+                {ACQUISITION_METHODS.map((m) => (
+                  <Checkbox key={m} checked={item.acquisition_method === m} label={m} />
+                ))}
               </p>
 
               <table className="mt-2 w-full border-collapse text-center text-[9.5px]">

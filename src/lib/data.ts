@@ -11,6 +11,7 @@ import type {
   Masters,
   MasterRow,
   SchoolSettings,
+  StaffAssetFields,
   SurveyProfile,
 } from "./types";
 
@@ -153,7 +154,7 @@ export async function fetchProfilesByIds(
 /** งานพัสดุแก้ไขรายการของครูคนไหนก็ได้ (asset_items_staff_all policy) — ใช้แก้เลขครุภัณฑ์/ข้อมูลก่อนอนุมัติ */
 export async function updateItemAsStaff(
   id: string,
-  patch: Partial<AssetItemDraft>,
+  patch: Partial<AssetItemDraft & StaffAssetFields> & { photo_path?: string | null },
 ): Promise<AssetItem> {
   const supabase = supabaseBrowser();
   const { data, error } = await supabase
@@ -234,7 +235,7 @@ export async function insertItem(
 
 export async function updateItem(
   id: string,
-  patch: Partial<AssetItemDraft> & { photo_path?: string | null },
+  patch: Partial<AssetItemDraft & StaffAssetFields> & { photo_path?: string | null },
 ): Promise<AssetItem> {
   const supabase = supabaseBrowser();
   const { data, error } = await supabase

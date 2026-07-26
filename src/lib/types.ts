@@ -31,6 +31,26 @@ export type SurveyProfile = {
   role: AssetUserRole;
 };
 
+/** ตัวเลือกวิธีการได้มา ตามแบบฟอร์มทะเบียนคุมทรัพย์สินของราชการ */
+export const ACQUISITION_METHODS = [
+  "ตกลงราคา",
+  "สอบราคา",
+  "ประกวดราคา",
+  "วิธีพิเศษ",
+  "รับบริจาค",
+] as const;
+export type AcquisitionMethod = (typeof ACQUISITION_METHODS)[number];
+
+/** ข้อมูลฝั่งจัดซื้อที่ครูไม่มีให้ตอนสำรวจ — เจ้าหน้าที่พัสดุ/แอดมินกรอกเพิ่มทีหลังในหน้าตรวจสอบครุภัณฑ์ */
+export type StaffAssetFields = {
+  vendor_name: string | null;
+  vendor_address: string | null;
+  vendor_phone: string | null;
+  acquisition_method: AcquisitionMethod | null;
+  model: string | null;
+  spec: string | null;
+};
+
 export type AssetItem = {
   id: string;
   round_id: string;
@@ -54,7 +74,7 @@ export type AssetItem = {
   surveyed_by: string;
   created_at: string;
   updated_at: string;
-};
+} & StaffAssetFields;
 
 /** ข้อมูลที่ฟอร์ม (ทั้ง 1b และ 1d) ส่งเข้ามาเพื่อบันทึก */
 export type AssetItemDraft = {

@@ -13,11 +13,22 @@ import {
 import { CONDITIONS } from "@/lib/constants";
 import { humanizeError, removePhoto, uploadPhoto } from "@/lib/data";
 import { parseNumber } from "@/lib/format";
-import type { AssetCondition, AssetItem, AssetItemDraft, Masters } from "@/lib/types";
+import {
+  ACQUISITION_METHODS,
+  type AcquisitionMethod,
+  type AssetCondition,
+  type AssetItem,
+  type AssetItemDraft,
+  type Masters,
+  type StaffAssetFields,
+} from "@/lib/types";
 
 /**
  * ฟอร์มแก้ไขรายการครุภัณฑ์ — ใช้ร่วมกันทั้งหน้า "รายการของฉัน" (ครูแก้ของตัวเอง)
  * และหน้า "ตรวจสอบครุภัณฑ์" (พัสดุ/แอดมินแก้ของใครก็ได้) ต่างกันแค่ฟังก์ชัน updateFn ที่ส่งเข้ามา
+ *
+ * showStaffFields เปิดเฉพาะตอนเรียกจากหน้าพัสดุ/แอดมิน — ช่องข้อมูลฝั่งจัดซื้อ
+ * (ผู้ขาย/ที่อยู่/โทรศัพท์/วิธีการได้มา/รุ่นแบบ/ลักษณะคุณสมบัติ) ที่ครูไม่มีข้อมูลตอนสำรวจ
  */
 export function ItemEditor({
   item,
@@ -25,12 +36,17 @@ export function ItemEditor({
   updateFn,
   onCancel,
   onSaved,
+  showStaffFields = false,
 }: {
   item: AssetItem;
   masters: Masters;
-  updateFn: (id: string, patch: Partial<AssetItemDraft> & { photo_path?: string | null }) => Promise<AssetItem>;
+  updateFn: (
+    id: string,
+    patch: Partial<AssetItemDraft & StaffAssetFields> & { photo_path?: string | null },
+  ) => Promise<AssetItem>;
   onCancel: () => void;
   onSaved: (item: AssetItem) => void;
+  showStaffFields?: boolean;
 }) {
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState(item.quantity);
@@ -43,6 +59,12 @@ export function ItemEditor({
   const [price, setPrice] = useState(item.price?.toString() ?? "");
   const [note, setNote] = useState(item.note ?? "");
   const [newPhoto, setNewPhoto] = useState<File | null>(null);
+  const [model, setModel] = useState(item.model ?? "");
+  const [spec, setSpec] = useState(item.spec ?? "");
+  const [vendorName, setVendorName] = useState(item.vendor_name ?? "");
+  const [vendorAddress, setVendorAddress] = useState(item.vendor_address ?? "");
+  const [vendorPhone, setVendorPhone] = useState(item.vendor_phone ?? "");
+  const [acquisitionMethod, setAcquisitionMethod] = useState(item.acquisition_method ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,6 +91,16 @@ export function ItemEditor({
         price: parseNumber(price),
         note: note.trim() || null,
         photo_path: photoPath,
+        ...(showStaffFields
+          ? {
+              model: model.trim() || null,
+              spec: spec.trim() || null,
+              vendor_name: vendorName.trim() || null,
+              vendor_address: vendorAddress.trim() || null,
+              vendor_phone: vendorPhone.trim() || null,
+              acquisition_method: (acquisitionMethod || null) as AcquisitionMethod | null,
+            }
+          : {}),
       });
       onSaved(updated);
     } catch (e) {
@@ -149,6 +181,51 @@ export function ItemEditor({
       <Field label="หมายเหตุ">
         <textarea rows={2} className={inputClass} value={note} onChange={(e) => setNote(e.target.value)} />
       </Field>
+
+      {showStaffFields ? (
+        <div className="space-y-3 rounded-xl border border-dashed border-stone-300 bg-stone-50 p-3">
+          <p className="font-display text-xs font-semibold text-stone-500">
+            ข้อมูลฝั่งจัดซื้อ (ครูไม่มีข้อมูลตอนสำรวจ — พัสดุ/แอดมินกรอกเพิ่มได้)
+          </p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="รุ่น/แบบ">
+              <input className={inputClass} value={model} onChange={(e) => setModel(e.target.value)} />
+            </Field>
+            <Field label="ลักษณะ/คุณสมบัติ">
+              <input className={inputClass} value={spec} onChange={(e) => setSpec(e.target.value)} />
+            </Field>
+          </div>
+
+          <Field label="วิธีการได้มา">
+            <select
+              className={inputClass}
+              value={acquisitionMethod}
+              onChange={(e) => setAcquisitionMethod(e.target.value)}
+            >
+              <option value="">— ไม่ระบุ —</option>
+              {ACQUISITION_METHODS.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="ชื่อผู้ขาย/ผู้รับจ้าง/ผู้บริจาค">
+            <input className={inputClass} value={vendorName} onChange={(e) => setVendorName(e.target.value)} />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="ที่อยู่ผู้ขาย">
+              <input className={inputClass} value={vendorAddress} onChange={(e) => setVendorAddress(e.target.value)} />
+            </Field>
+            <Field label="โทรศัพท์ผู้ขาย">
+              <input className={inputClass} value={vendorPhone} onChange={(e) => setVendorPhone(e.target.value)} />
+            </Field>
+          </div>
+        </div>
+      ) : null}
 
       <Field label={item.photo_path ? "เปลี่ยนรูป" : "เพิ่มรูป"} required={!item.photo_path} group>
         {item.photo_path && !newPhoto ? (
