@@ -104,8 +104,8 @@ export default function PrintRegisterPage() {
   return (
     <main className="mx-auto w-full max-w-[1400px] flex-1 px-5 py-6 print:max-w-none print:px-0 print:py-0">
       <div className="no-print flex flex-wrap items-center justify-between gap-3">
-        <Link href="/items" className="text-sm text-sky-700">
-          ‹ รายการของฉัน
+        <Link href="/review" className="text-sm text-sky-700">
+          ‹ ตรวจสอบครุภัณฑ์
         </Link>
         <div className="flex items-center gap-2">
           <input

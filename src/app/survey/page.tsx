@@ -9,7 +9,6 @@ import {
   ButtonLabel,
   ChipGroup,
   Field,
-  PhotoThumb,
   QuantityStepper,
   Toast,
   inputClass,
@@ -19,7 +18,13 @@ import { CONDITIONS, CURRENT_BE_YEAR, FLOORS } from "@/lib/constants";
 import { findByAssetCode, humanizeError, insertItem, uploadPhoto } from "@/lib/data";
 import { describeLocation, parseNumber, shiftAssetCodeSerial } from "@/lib/format";
 import { useLastRoom, useMasters } from "@/lib/hooks";
-import { ACQUISITION_METHODS, type AcquisitionMethod, type AssetCondition, type AssetItem } from "@/lib/types";
+import { ACQUISITION_METHODS, type AcquisitionMethod, type AssetCondition } from "@/lib/types";
+
+/**
+ * รายการที่เพิ่งบันทึกในห้องนี้ — ใช้แสดงตัวอย่างเฉย ๆ ไม่ใช่ AssetItem จริงจาก DB
+ * เพราะสิทธิ์อ่าน asset_items/รูปสงวนไว้ให้งานพัสดุเท่านั้น (ครูกรอกแล้วอ่านคืนไม่ได้)
+ */
+type SavedPreview = { id: string; name: string; quantity: number; unit: string | null; photoUrl: string | null };
 
 type Draft = {
   building: string;
@@ -89,7 +94,7 @@ export default function SurveyPage() {
     { value: "", touched: false },
   ]);
   const [duplicates, setDuplicates] = useState<(string | null)[]>([null]);
-  const [savedInRoom, setSavedInRoom] = useState<AssetItem[]>([]);
+  const [savedInRoom, setSavedInRoom] = useState<SavedPreview[]>([]);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
@@ -181,12 +186,13 @@ export default function SurveyPage() {
       // ชื่อเดียวกันได้หลายชิ้น แต่ละชิ้นมีหมายเลขครุภัณฑ์ของตัวเอง → บันทึกแยกแถวตามจำนวนช่องที่กรอก
       // อัปโหลดรูปแยกชุดต่อชิ้น (ไม่ใช้ path เดียวกัน) เผื่อภายหลังลบชิ้นใดชิ้นหนึ่งจะไม่ลากรูปของชิ้นอื่นหายไปด้วย
       const codes = draft.untagged ? codeEntries.map(() => "") : codeEntries.map((e) => e.value);
-      const created: AssetItem[] = [];
+      const created: SavedPreview[] = [];
+      const previewUrl = URL.createObjectURL(photo);
 
       for (const code of codes) {
         const photoPath = await uploadPhoto(photo);
         const trimmed = code.trim();
-        const item = await insertItem(
+        await insertItem(
           masters.round.id,
           {
             building: draft.building.trim(),
@@ -215,7 +221,13 @@ export default function SurveyPage() {
           // ไม่ต้องแวะไปกดตรวจทาน/ส่งอีกรอบที่ "รายการของฉัน"
           "submitted",
         );
-        created.push(item);
+        created.push({
+          id: crypto.randomUUID(),
+          name: draft.name.trim(),
+          quantity: 1,
+          unit: draft.unit.trim() || null,
+          photoUrl: previewUrl,
+        });
       }
 
       remember({
@@ -312,7 +324,14 @@ export default function SurveyPage() {
                 <ul className="mt-2 space-y-2">
                   {savedInRoom.slice(0, 4).map((item) => (
                     <li key={item.id} className="flex items-center gap-2 text-sm text-stone-600">
-                      <PhotoThumb path={item.photo_path} className="h-9 w-9" />
+                      {item.photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.photoUrl} alt="" className="h-9 w-9 shrink-0 rounded-md object-cover" />
+                      ) : (
+                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-stone-100 text-xs text-stone-400">
+                          —
+                        </div>
+                      )}
                       <span className="truncate">{item.name}</span>
                       <span className="ml-auto shrink-0 text-xs text-stone-400">
                         {item.quantity} {item.unit ?? ""}

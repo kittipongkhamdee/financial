@@ -92,25 +92,8 @@ export async function fetchMasters(): Promise<Masters> {
   };
 }
 
-export async function fetchMyItems(roundId: string): Promise<AssetItem[]> {
-  const supabase = supabaseBrowser();
-  const user = await getSessionUser();
-  if (!user) return [];
-
-  const { data, error } = await supabase
-    .from("asset_items")
-    .select("*")
-    .eq("round_id", roundId)
-    .eq("surveyed_by", user.id)
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-  return (data as AssetItem[]) ?? [];
-}
-
 /**
- * รายการครุภัณฑ์สำหรับพิมพ์ทะเบียนคุมทรัพย์สิน — ไม่กรองตาม surveyed_by เอง
- * RLS จะจำกัดให้เห็นตามสิทธิ์จริงอยู่แล้ว (ครูเห็นเฉพาะของตัวเอง / งานพัสดุ-แอดมินเห็นทั้งหมด)
+ * รายการครุภัณฑ์สำหรับพิมพ์ทะเบียนคุมทรัพย์สิน — RLS จำกัดให้เห็นเฉพาะงานพัสดุ/แอดมินอยู่แล้ว
  */
 export async function fetchRegisterItems(roundId: string): Promise<AssetItem[]> {
   const supabase = supabaseBrowser();
@@ -142,25 +125,7 @@ export async function fetchReviewItems(roundId: string): Promise<AssetItem[]> {
   return (data as AssetItem[]) ?? [];
 }
 
-/** ชื่อครูผู้กรอก — asset_items.surveyed_by อ้างถึง auth.users ตรง ๆ ไม่ผ่าน FK ไปตาราง profiles จึงต้องดึงแยก */
-export async function fetchProfilesByIds(
-  ids: string[],
-): Promise<Map<string, Pick<SurveyProfile, "full_name" | "department">>> {
-  const uniqueIds = [...new Set(ids)];
-  if (uniqueIds.length === 0) return new Map();
-
-  const supabase = supabaseBrowser();
-  const { data, error } = await supabase
-    .from("asset_survey_profiles")
-    .select("user_id, full_name, department")
-    .in("user_id", uniqueIds);
-
-  if (error) throw error;
-  const rows = (data ?? []) as { user_id: string; full_name: string; department: string | null }[];
-  return new Map(rows.map((p) => [p.user_id, { full_name: p.full_name, department: p.department }]));
-}
-
-/** งานพัสดุแก้ไขรายการของครูคนไหนก็ได้ (asset_items_staff_all policy) — ใช้แก้เลขครุภัณฑ์/ข้อมูลก่อนอนุมัติ */
+/** งานพัสดุแก้ไขรายการไหนก็ได้ (asset_items_staff_all policy) — ใช้แก้เลขครุภัณฑ์/ข้อมูลก่อนอนุมัติ */
 export async function updateItemAsStaff(
   id: string,
   patch: Partial<AssetItemDraft & StaffAssetFields> & { photo_path?: string | null },
@@ -209,71 +174,33 @@ export async function rejectItem(id: string, reason: string): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * เพิ่มรายการครุภัณฑ์ — ไม่ต้องล็อกอิน ไม่ผูกกับผู้กรอก (เหมือน Google Form)
+ * ไม่ .select() คืนแถวที่เพิ่ง insert เพราะสิทธิ์อ่าน asset_items สงวนไว้ให้งานพัสดุ/แอดมินเท่านั้น
+ * (insert ...returning ต้องผ่าน select policy ด้วย ไม่ใช่แค่ with check ของ insert policy)
+ */
 export async function insertItem(
   roundId: string,
   draft: AssetItemDraft,
   photoPath: string | null,
-  status: AssetItemStatus = "draft",
-): Promise<AssetItem> {
+  status: AssetItemStatus = "submitted",
+): Promise<void> {
   const supabase = supabaseBrowser();
-  const user = await getSessionUser();
-  if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
-
-  const { data, error } = await supabase
-    .from("asset_items")
-    .insert({
-      ...draft,
-      asset_code: draft.asset_code?.trim() || null,
-      round_id: roundId,
-      photo_path: photoPath,
-      surveyed_by: user.id,
-      status,
-    })
-    .select("*")
-    .single();
+  const { error } = await supabase.from("asset_items").insert({
+    ...draft,
+    asset_code: draft.asset_code?.trim() || null,
+    round_id: roundId,
+    photo_path: photoPath,
+    status,
+  });
 
   if (error) throw error;
-  return data as AssetItem;
-}
-
-export async function updateItem(
-  id: string,
-  patch: Partial<AssetItemDraft & StaffAssetFields> & { photo_path?: string | null },
-): Promise<AssetItem> {
-  const supabase = supabaseBrowser();
-  const { data, error } = await supabase
-    .from("asset_items")
-    .update(patch)
-    .eq("id", id)
-    .select("*")
-    .single();
-
-  if (error) throw error;
-  return data as AssetItem;
 }
 
 export async function deleteItem(id: string): Promise<void> {
   const supabase = supabaseBrowser();
   const { error } = await supabase.from("asset_items").delete().eq("id", id);
   if (error) throw error;
-}
-
-/** ส่งรายการที่ยังไม่ส่งทั้งหมดของรอบนี้ให้งานพัสดุตรวจสอบ */
-export async function submitDrafts(roundId: string): Promise<number> {
-  const supabase = supabaseBrowser();
-  const user = await getSessionUser();
-  if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
-
-  const { data, error } = await supabase
-    .from("asset_items")
-    .update({ status: "submitted", reject_reason: null })
-    .eq("round_id", roundId)
-    .eq("surveyed_by", user.id)
-    .in("status", ["draft", "rejected"])
-    .select("id");
-
-  if (error) throw error;
-  return data?.length ?? 0;
 }
 
 /** เตือนเลขซ้ำก่อนบันทึก (unique index เป็นด่านสุดท้าย) */
@@ -302,9 +229,6 @@ export async function findByAssetCode(
  */
 export async function uploadPhoto(file: File): Promise<string> {
   const supabase = supabaseBrowser();
-  const user = await getSessionUser();
-  if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
-
   const { blob, ext, contentType } = await compressImage(file);
   const path = `${crypto.randomUUID()}.${ext}`;
 
@@ -461,7 +385,7 @@ export async function updateUserRole(userId: string, role: SurveyProfile["role"]
 }
 
 /** ลบบัญชีถาวร — ต้อง admin เท่านั้น (เช็คในฟังก์ชันฝั่ง DB) ลบตัวเองไม่ได้
- *  ลบไม่ได้ถ้ามีรายการครุภัณฑ์ผูกอยู่ (asset_items.surveyed_by on delete restrict) */
+ *  รายการครุภัณฑ์เก่าที่ยังผูก surveyed_by กับบัญชีนี้อยู่จะกันไม่ให้ลบ (on delete restrict) */
 export async function deleteUser(userId: string): Promise<void> {
   const supabase = supabaseBrowser();
   const { error } = await supabase.rpc("asset_admin_delete_user", { target_user_id: userId });
@@ -484,21 +408,6 @@ export async function fetchSchoolSettings(): Promise<SchoolSettings> {
 
   if (error) throw error;
   return (data as SchoolSettings | null) ?? { school_name: null, system_name: "ระบบบริหารงบประมาณโรงเรียน", logo_path: null };
-}
-
-/** ชื่อรอบสำรวจที่เปิดอยู่ — ใช้ได้แม้ยังไม่ล็อกอิน (หน้า login) ไม่มีรอบเปิดอยู่ก็คืน null */
-export async function fetchOpenRoundName(): Promise<string | null> {
-  const supabase = supabaseBrowser();
-  const { data, error } = await supabase
-    .from("asset_survey_rounds")
-    .select("name")
-    .eq("is_open", true)
-    .order("year", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data?.name ?? null;
 }
 
 export async function updateSchoolSettings(

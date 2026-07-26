@@ -71,7 +71,7 @@ export type AssetItem = {
   photo_path: string | null;
   status: AssetItemStatus;
   reject_reason: string | null;
-  surveyed_by: string;
+  surveyed_by: string | null;
   created_at: string;
   updated_at: string;
 } & StaffAssetFields;

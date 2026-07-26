@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { ItemEditor } from "@/components/ItemEditor";
 import { Alert, ButtonLabel, PhotoThumb, Toast, inputClass, useToast } from "@/components/ui";
 import {
@@ -12,14 +13,13 @@ import {
 import {
   approveItems,
   deleteItem,
-  fetchProfilesByIds,
   fetchReviewItems,
   humanizeError,
   rejectItem,
   removePhoto,
   updateItemAsStaff,
 } from "@/lib/data";
-import { describeLocation, formatBaht, formatCount } from "@/lib/format";
+import { formatBaht } from "@/lib/format";
 import { useMasters, useProfile } from "@/lib/hooks";
 import type { AssetItem, AssetItemStatus } from "@/lib/types";
 
@@ -29,15 +29,12 @@ const TABS: { value: AssetItemStatus; label: string }[] = [
   { value: "rejected", label: "ตีกลับ" },
 ];
 
-type ProfileInfo = { full_name: string; department: string | null };
-
 export default function ReviewPage() {
   const { masters, error: mastersError } = useMasters();
   const profile = useProfile();
   const { message, show } = useToast();
 
   const [items, setItems] = useState<AssetItem[]>([]);
-  const [profiles, setProfiles] = useState<Map<string, ProfileInfo>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
@@ -55,10 +52,7 @@ export default function ReviewPage() {
     if (!masters?.round || isStaff !== true) return;
     setLoading(true);
     fetchReviewItems(masters.round.id)
-      .then(async (rows) => {
-        setItems(rows);
-        setProfiles(await fetchProfilesByIds(rows.map((r) => r.surveyed_by)));
-      })
+      .then(setItems)
       .catch((e) => setError(humanizeError(e)))
       .finally(() => setLoading(false));
   }, [masters, isStaff]);
@@ -186,8 +180,18 @@ export default function ReviewPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-6">
-      <h1 className="font-display text-xl font-bold text-stone-900">ตรวจสอบครุภัณฑ์</h1>
-      <p className="text-sm text-stone-600">{masters?.round ? masters.round.name : ""} · รายการของทุกคนในรอบนี้</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-xl font-bold text-stone-900">ตรวจสอบครุภัณฑ์</h1>
+          <p className="text-sm text-stone-600">{masters?.round ? masters.round.name : ""} · รายการทั้งหมดในรอบนี้</p>
+        </div>
+        <Link
+          href="/items/print"
+          className="shrink-0 rounded-xl border border-sky-700 px-3 py-2 text-sm font-semibold text-sky-700"
+        >
+          พิมพ์ทะเบียนคุมทรัพย์สิน
+        </Link>
+      </div>
 
       {error ? (
         <div className="mt-3">
@@ -261,7 +265,6 @@ export default function ReviewPage() {
               </div>
               <ul className="mt-2 space-y-2">
                 {roomItems.map((item) => {
-                  const teacher = profiles.get(item.surveyed_by);
                   const busy = busyIds.has(item.id);
 
                   if (editingId === item.id && masters) {
@@ -295,8 +298,7 @@ export default function ReviewPage() {
                             {item.acquired_year ? ` · ได้มาปี ${item.acquired_year}` : ""}
                           </p>
                           <p className="mt-1 text-xs text-stone-500">
-                            ครูผู้กรอก: {teacher?.full_name ?? "ไม่ทราบ"}
-                            {teacher?.department ? ` (${teacher.department})` : ""} ·{" "}
+                            ส่งเมื่อ{" "}
                             {new Intl.DateTimeFormat("th-TH", { dateStyle: "short", timeStyle: "short" }).format(
                               new Date(item.created_at),
                             )}

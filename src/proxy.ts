@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PUBLIC_PATHS = ["/login", "/auth"];
+const PUBLIC_PATHS = ["/", "/survey", "/login", "/auth"];
 
 /**
  * Next 16 เรียก middleware ว่า proxy — หน้าที่คือต่ออายุ session ของ Supabase
- * และกันคนที่ยังไม่ล็อกอินออกจากหน้าที่ต้องล็อกอิน
+ * และกันคนที่ยังไม่ล็อกอินออกจากหน้าที่ต้องล็อกอิน (เฉพาะฝั่งเจ้าหน้าที่พัสดุ/แอดมิน
+ * เท่านั้น — แบบสำรวจ (/, /survey) เปิดสาธารณะ ไม่ต้องล็อกอินเหมือน Google Form)
  */
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -53,8 +54,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // ผู้ใช้โหมดทั่วไปยังต้องเข้าหน้า /login ได้ เผื่อเจ้าหน้าที่พัสดุจะล็อกอินด้วยอีเมล
-  if (user && !user.is_anonymous && pathname === "/login") {
+  // ล็อกอินอยู่แล้ว (เจ้าหน้าที่พัสดุ/แอดมิน) ไม่ต้องเห็นหน้า /login อีก
+  if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";
