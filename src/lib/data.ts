@@ -486,6 +486,21 @@ export async function fetchSchoolSettings(): Promise<SchoolSettings> {
   return (data as SchoolSettings | null) ?? { school_name: null, system_name: "ระบบบริหารงบประมาณโรงเรียน", logo_path: null };
 }
 
+/** ชื่อรอบสำรวจที่เปิดอยู่ — ใช้ได้แม้ยังไม่ล็อกอิน (หน้า login) ไม่มีรอบเปิดอยู่ก็คืน null */
+export async function fetchOpenRoundName(): Promise<string | null> {
+  const supabase = supabaseBrowser();
+  const { data, error } = await supabase
+    .from("asset_survey_rounds")
+    .select("name")
+    .eq("is_open", true)
+    .order("year", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.name ?? null;
+}
+
 export async function updateSchoolSettings(
   patch: Partial<Pick<SchoolSettings, "school_name" | "system_name" | "logo_path">>,
 ): Promise<void> {

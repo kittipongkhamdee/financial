@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Alert, ButtonLabel, Field, Logo, inputClass } from "@/components/ui";
+import { fetchOpenRoundName } from "@/lib/data";
 import { useSchoolSettings } from "@/lib/hooks";
 
 type Mode = "guest" | "signin" | "signup";
@@ -13,6 +14,17 @@ export function LoginForm() {
   const params = useSearchParams();
   const nextPath = params.get("next") || "/";
   const { settings } = useSchoolSettings();
+  const [roundName, setRoundName] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetchOpenRoundName().then((name) => {
+      if (alive) setRoundName(name);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const [mode, setMode] = useState<Mode>("guest");
   const [email, setEmail] = useState("");
@@ -96,7 +108,9 @@ export function LoginForm() {
             {settings?.school_name ? ` · ${settings.school_name}` : ""}
           </p>
           <h1 className="mt-1 font-display text-2xl font-bold text-stone-900">สำรวจครุภัณฑ์</h1>
-          <p className="mt-1 text-sm text-stone-600">แบบสำรวจครุภัณฑ์รายห้อง ปีการศึกษา 2569</p>
+          <p className="mt-1 text-sm text-stone-600">
+            {roundName ?? "ยังไม่มีรอบสำรวจที่เปิดอยู่"}
+          </p>
         </div>
       </div>
 
