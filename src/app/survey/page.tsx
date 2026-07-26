@@ -279,12 +279,21 @@ export default function SurveyPage() {
       <header className="sticky top-0 z-10 border-b border-stone-200 bg-[#f5f3ef]/95 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
           {step === 0 ? (
-            <Link href="/" className="text-lg text-stone-500" aria-label="กลับหน้าแรก">
-              ‹
+            <Link
+              href="/"
+              aria-label="กลับหน้าแรก"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-700 shadow-sm transition active:bg-stone-100"
+            >
+              <BackIcon />
             </Link>
           ) : (
-            <button onClick={() => setStep(step - 1)} className="text-lg text-stone-500" aria-label="ย้อนกลับ">
-              ‹
+            <button
+              type="button"
+              onClick={() => setStep(step - 1)}
+              aria-label="ย้อนกลับ"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-700 shadow-sm transition active:bg-stone-100"
+            >
+              <BackIcon />
             </button>
           )}
           <div className="min-w-0 flex-1">
@@ -659,5 +668,13 @@ export default function SurveyPage() {
 
       <Toast message={message} />
     </main>
+  );
+}
+
+function BackIcon() {
+  return (
+    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
