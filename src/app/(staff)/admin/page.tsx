@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alert, ButtonLabel, Toast, inputClass, useToast } from "@/components/ui";
+import { Alert, ButtonLabel, Logo, Toast, inputClass, useToast } from "@/components/ui";
 import {
   type AdminUserRow,
   type MasterTable,
@@ -9,16 +9,19 @@ import {
   closeRound,
   createMasterRow,
   createRound,
+  deleteUser,
   fetchAdminUsers,
   fetchAllMasterRows,
   fetchAllRounds,
   humanizeError,
   openRound,
   updateMasterRow,
+  updateSchoolSettings,
   updateUserRole,
+  uploadLogo,
 } from "@/lib/data";
 import { CURRENT_BE_YEAR } from "@/lib/constants";
-import { useProfile } from "@/lib/hooks";
+import { useProfile, useSchoolSettings } from "@/lib/hooks";
 import type { AssetUserRole, CategoryRow, MasterRow } from "@/lib/types";
 
 const ROLE_LABEL: Record<AssetUserRole, string> = {
@@ -28,6 +31,7 @@ const ROLE_LABEL: Record<AssetUserRole, string> = {
 };
 
 const TABS = [
+  { key: "general", label: "ทั่วไป" },
   { key: "rounds", label: "รอบสำรวจ" },
   { key: "asset_categories", label: "หมวดหมู่ครุภัณฑ์" },
   { key: "asset_buildings", label: "อาคาร" },
@@ -41,7 +45,7 @@ type TabKey = (typeof TABS)[number]["key"];
 export default function AdminPage() {
   const profile = useProfile();
   const { message, show } = useToast();
-  const [tab, setTab] = useState<TabKey>("rounds");
+  const [tab, setTab] = useState<TabKey>("general");
   const [error, setError] = useState<string | null>(null);
 
   const isAdmin = profile ? profile.role === "admin" : null;
@@ -85,7 +89,9 @@ export default function AdminPage() {
 
       <div className="mt-6">
         {isAdmin === true ? (
-          tab === "rounds" ? (
+          tab === "general" ? (
+            <GeneralPanel onError={setError} onDone={show} />
+          ) : tab === "rounds" ? (
             <RoundsPanel onError={setError} onDone={show} />
           ) : tab === "users" ? (
             <UsersPanel onError={setError} onDone={show} selfId={profile?.user_id ?? null} />
@@ -99,6 +105,110 @@ export default function AdminPage() {
 
       <Toast message={message} />
     </main>
+  );
+}
+
+/* ---------- ทั่วไป (ชื่อโรงเรียน/ชื่อระบบ/โลโก้) ---------- */
+
+function GeneralPanel({ onError, onDone }: { onError: (e: string | null) => void; onDone: (m: string) => void }) {
+  const { settings, refetch } = useSchoolSettings();
+  const [schoolName, setSchoolName] = useState("");
+  const [systemName, setSystemName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [logoBusy, setLogoBusy] = useState(false);
+
+  useEffect(() => {
+    if (!settings) return;
+    setSchoolName(settings.school_name ?? "");
+    setSystemName(settings.system_name);
+  }, [settings]);
+
+  async function handleSave() {
+    setBusy(true);
+    onError(null);
+    try {
+      await updateSchoolSettings({
+        school_name: schoolName.trim() || null,
+        system_name: systemName.trim() || "ระบบบริหารงบประมาณโรงเรียน",
+      });
+      refetch();
+      onDone("บันทึกแล้ว");
+    } catch (e) {
+      onError(humanizeError(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleLogo(file: File) {
+    setLogoBusy(true);
+    onError(null);
+    try {
+      const { path } = await uploadLogo(file);
+      await updateSchoolSettings({ logo_path: path });
+      refetch();
+      onDone("เปลี่ยนโลโก้แล้ว");
+    } catch (e) {
+      onError(humanizeError(e));
+    } finally {
+      setLogoBusy(false);
+    }
+  }
+
+  if (!settings) return <p className="text-sm text-stone-500">กำลังโหลด…</p>;
+
+  return (
+    <div className="max-w-md space-y-4 rounded-xl border border-stone-200 bg-white p-4">
+      <div className="flex items-center gap-3">
+        <Logo path={settings.logo_path} className="h-14 w-14 rounded-lg border border-stone-200" />
+        <div>
+          <label className="inline-block cursor-pointer rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50">
+            <ButtonLabel busy={logoBusy}>{logoBusy ? "กำลังอัปโหลด…" : "เปลี่ยนโลโก้"}</ButtonLabel>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              disabled={logoBusy}
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleLogo(file);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <p className="mt-1 text-xs text-stone-400">PNG/JPG/SVG ไม่เกิน 2MB</p>
+        </div>
+      </div>
+
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-medium text-stone-700">ชื่อระบบ</span>
+        <input
+          value={systemName}
+          onChange={(e) => setSystemName(e.target.value)}
+          placeholder="ระบบบริหารงบประมาณโรงเรียน"
+          className={inputClass}
+        />
+      </label>
+
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-medium text-stone-700">ชื่อโรงเรียน</span>
+        <input
+          value={schoolName}
+          onChange={(e) => setSchoolName(e.target.value)}
+          placeholder="เช่น โรงเรียนบ้านหนองบัว"
+          className={inputClass}
+        />
+      </label>
+
+      <button
+        type="button"
+        disabled={busy}
+        onClick={handleSave}
+        className="rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:bg-stone-300"
+      >
+        <ButtonLabel busy={busy}>บันทึก</ButtonLabel>
+      </button>
+    </div>
   );
 }
 
@@ -420,6 +530,21 @@ function UsersPanel({
     }
   }
 
+  async function handleDelete(user: AdminUserRow) {
+    if (!confirm(`ลบบัญชี "${user.full_name}" ถาวร? กู้คืนไม่ได้`)) return;
+    setBusyId(user.user_id);
+    onError(null);
+    try {
+      await deleteUser(user.user_id);
+      setUsers((prev) => prev.filter((u) => u.user_id !== user.user_id));
+      onDone("ลบบัญชีแล้ว");
+    } catch (e) {
+      onError(humanizeError(e));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   const visible = users.filter((u) => showGuests || !u.is_anonymous);
   const guestCount = users.filter((u) => u.is_anonymous).length;
 
@@ -448,19 +573,30 @@ function UsersPanel({
                 {u.email ?? "ไม่มีอีเมล"} {u.department ? `· ${u.department}` : ""}
               </p>
             </div>
-            <select
-              value={u.role}
-              disabled={busyId === u.user_id || u.user_id === selfId}
-              onChange={(e) => handleRoleChange(u.user_id, e.target.value as AssetUserRole)}
-              className={`${inputClass} max-w-[10rem] py-1.5 text-sm`}
-              title={u.user_id === selfId ? "เปลี่ยนสิทธิ์ตัวเองไม่ได้" : undefined}
-            >
-              {(Object.keys(ROLE_LABEL) as AssetUserRole[]).map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABEL[r]}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2">
+              <select
+                value={u.role}
+                disabled={busyId === u.user_id || u.user_id === selfId}
+                onChange={(e) => handleRoleChange(u.user_id, e.target.value as AssetUserRole)}
+                className={`${inputClass} max-w-[10rem] py-1.5 text-sm`}
+                title={u.user_id === selfId ? "เปลี่ยนสิทธิ์ตัวเองไม่ได้" : undefined}
+              >
+                {(Object.keys(ROLE_LABEL) as AssetUserRole[]).map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABEL[r]}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={busyId === u.user_id || u.user_id === selfId}
+                onClick={() => handleDelete(u)}
+                title={u.user_id === selfId ? "ลบบัญชีตัวเองไม่ได้" : undefined}
+                className="shrink-0 rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-500 hover:border-rose-400 hover:text-rose-600 disabled:opacity-50"
+              >
+                <ButtonLabel busy={busyId === u.user_id}>ลบ</ButtonLabel>
+              </button>
+            </div>
           </li>
         ))}
       </ul>

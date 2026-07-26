@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { fetchMasters, fetchProfile } from "./data";
-import type { Masters, RoomLocation, SurveyProfile } from "./types";
+import { fetchMasters, fetchProfile, fetchSchoolSettings } from "./data";
+import type { Masters, RoomLocation, SchoolSettings, SurveyProfile } from "./types";
 
 const ROOM_KEY = "asset-survey:last-room";
 const RECENT_ROOMS_KEY = "asset-survey:recent-rooms";
@@ -56,6 +56,59 @@ export function useProfile() {
   }, []);
 
   return profile;
+}
+
+/**
+ * ชื่อโรงเรียน/ชื่อระบบ/โลโก้ — อ่านได้แม้ยังไม่ล็อกอิน (เช่นหน้า login)
+ * ใช้ cache ระดับโมดูล + pub-sub เพราะหน้าเดียวกันอาจมีหลายจุดเรียก hook นี้พร้อมกัน
+ * (sidebar + เนื้อหาในหน้า /admin) — refetch() จากจุดหนึ่งต้องอัปเดตทุกจุดที่แสดงอยู่ด้วย
+ */
+let schoolSettingsCache: SchoolSettings | null = null;
+let schoolSettingsInflight: Promise<SchoolSettings> | null = null;
+const schoolSettingsListeners = new Set<(s: SchoolSettings) => void>();
+
+function loadSchoolSettings() {
+  if (!schoolSettingsInflight) {
+    schoolSettingsInflight = fetchSchoolSettings().then((s) => {
+      schoolSettingsCache = s;
+      schoolSettingsInflight = null;
+      schoolSettingsListeners.forEach((listener) => listener(s));
+      return s;
+    });
+  }
+  return schoolSettingsInflight;
+}
+
+export function useSchoolSettings() {
+  const [settings, setSettings] = useState<SchoolSettings | null>(schoolSettingsCache);
+
+  useEffect(() => {
+    let alive = true;
+    const listener = (s: SchoolSettings) => {
+      if (alive) setSettings(s);
+    };
+    schoolSettingsListeners.add(listener);
+
+    if (schoolSettingsCache) {
+      setSettings(schoolSettingsCache);
+    } else {
+      loadSchoolSettings().then((s) => {
+        if (alive) setSettings(s);
+      });
+    }
+
+    return () => {
+      alive = false;
+      schoolSettingsListeners.delete(listener);
+    };
+  }, []);
+
+  const refetch = useCallback(() => {
+    schoolSettingsInflight = null;
+    loadSchoolSettings();
+  }, []);
+
+  return { settings, refetch };
 }
 
 /**

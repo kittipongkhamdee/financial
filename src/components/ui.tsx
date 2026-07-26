@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { invalidatePhotoUrl, signedPhotoUrl } from "@/lib/data";
+import { invalidatePhotoUrl, logoPublicUrl, signedPhotoUrl } from "@/lib/data";
 
 /* ---------- ฟอร์ม ---------- */
 
@@ -212,6 +212,21 @@ function SignedPhoto({ path, className }: { path: string; className: string }) {
         />
       ) : null}
     </div>
+  );
+}
+
+/** โลโก้ระบบ — public URL แสดงได้ทันที (ไม่ต้องขอ signed URL) ไม่มีโลโก้ก็ใช้จุดทองแทน */
+export function Logo({ path, className = "h-8 w-8" }: { path: string | null; className?: string }) {
+  if (!path) {
+    return <span className={`${className} inline-block shrink-0 rounded-full bg-gold-400`} aria-hidden />;
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- โลโก้อยู่ bucket สาธารณะ ไม่ผ่าน next/image optimizer
+    <img
+      src={logoPublicUrl(path)}
+      alt="โลโก้ระบบ"
+      className={`${className} shrink-0 rounded-md object-contain`}
+    />
   );
 }
 

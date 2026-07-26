@@ -10,6 +10,7 @@ import type {
   CategoryRow,
   Masters,
   MasterRow,
+  SchoolSettings,
   SurveyProfile,
 } from "./types";
 
@@ -18,7 +19,9 @@ export function humanizeError(error: unknown): string {
   const e = error as { code?: string; message?: string } | null;
   if (!e) return "เกิดข้อผิดพลาดไม่ทราบสาเหตุ";
   if (e.code === "23505") return "หมายเลขครุภัณฑ์นี้มีอยู่ในระบบแล้ว — ตรวจสอบเลขอีกครั้ง";
-  if (e.code === "42501") return "ไม่มีสิทธิ์แก้ไขรายการนี้ (อาจส่งให้พัสดุแล้ว)";
+  if (e.code === "23503") return "ลบไม่ได้ เพราะยังมีรายการครุภัณฑ์ผูกอยู่กับบัญชีนี้";
+  if (e.code === "22023") return "ลบบัญชีตัวเองไม่ได้";
+  if (e.code === "42501") return "ไม่มีสิทธิ์ทำรายการนี้ (อาจส่งให้พัสดุแล้ว หรือไม่ใช่แอดมิน)";
   if (e.message?.includes("Failed to fetch")) return "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ตรวจสอบสัญญาณอินเทอร์เน็ต";
   return e.message ?? "เกิดข้อผิดพลาดไม่ทราบสาเหตุ";
 }
@@ -455,4 +458,60 @@ export async function updateUserRole(userId: string, role: SurveyProfile["role"]
   const supabase = supabaseBrowser();
   const { error } = await supabase.from("asset_survey_profiles").update({ role }).eq("user_id", userId);
   if (error) throw error;
+}
+
+/** ลบบัญชีถาวร — ต้อง admin เท่านั้น (เช็คในฟังก์ชันฝั่ง DB) ลบตัวเองไม่ได้
+ *  ลบไม่ได้ถ้ามีรายการครุภัณฑ์ผูกอยู่ (asset_items.surveyed_by on delete restrict) */
+export async function deleteUser(userId: string): Promise<void> {
+  const supabase = supabaseBrowser();
+  const { error } = await supabase.rpc("asset_admin_delete_user", { target_user_id: userId });
+  if (error) throw error;
+}
+
+/* -----------------------------------------------------------------------------
+ * ตั้งค่าระบบ — ชื่อโรงเรียน / ชื่อระบบ / โลโก้ (แถวเดียว อ่านได้ทุกคนแม้ยังไม่ล็อกอิน)
+ * -------------------------------------------------------------------------- */
+
+export const LOGO_BUCKET = "system-branding";
+
+export async function fetchSchoolSettings(): Promise<SchoolSettings> {
+  const supabase = supabaseBrowser();
+  const { data, error } = await supabase
+    .from("asset_school_settings")
+    .select("school_name, system_name, logo_path")
+    .eq("id", true)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as SchoolSettings | null) ?? { school_name: null, system_name: "ระบบบริหารงบประมาณโรงเรียน", logo_path: null };
+}
+
+export async function updateSchoolSettings(
+  patch: Partial<Pick<SchoolSettings, "school_name" | "system_name" | "logo_path">>,
+): Promise<void> {
+  const supabase = supabaseBrowser();
+  const { error } = await supabase.from("asset_school_settings").update(patch).eq("id", true);
+  if (error) throw error;
+}
+
+/** อัปโหลดโลโก้เข้า bucket สาธารณะ คืน public URL ไว้แสดงได้ทันทีไม่ต้องขอ signed URL */
+export async function uploadLogo(file: File): Promise<{ path: string; url: string }> {
+  const supabase = supabaseBrowser();
+  const ext = file.name.split(".").pop() ?? "png";
+  const path = `logo-${Date.now()}.${ext}`;
+
+  const { error } = await supabase.storage.from(LOGO_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+    contentType: file.type,
+  });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from(LOGO_BUCKET).getPublicUrl(path);
+  return { path, url: data.publicUrl };
+}
+
+export function logoPublicUrl(path: string): string {
+  const supabase = supabaseBrowser();
+  return supabase.storage.from(LOGO_BUCKET).getPublicUrl(path).data.publicUrl;
 }

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useProfile } from "@/lib/hooks";
+import { Logo } from "@/components/ui";
+import { useProfile, useSchoolSettings } from "@/lib/hooks";
 
 const NAV = [
   { href: "/review", label: "ตรวจสอบครุภัณฑ์", icon: ClipboardIcon, roles: ["supply", "admin"] as const },
@@ -13,9 +14,11 @@ const NAV = [
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const profile = useProfile();
+  const { settings } = useSchoolSettings();
   const [open, setOpen] = useState(false);
 
   const items = NAV.filter((n) => !profile || n.roles.includes(profile.role as never));
+  const systemName = settings?.system_name ?? "ระบบบริหารงบประมาณโรงเรียน";
 
   return (
     <div className="flex min-h-full flex-1 bg-[#f4f5f7]">
@@ -29,9 +32,8 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         >
           <MenuIcon />
         </button>
-        <span className="font-display text-sm font-semibold tracking-wide">
-          ระบบบริหารงบประมาณโรงเรียน
-        </span>
+        <Logo path={settings?.logo_path ?? null} className="h-6 w-6" />
+        <span className="truncate font-display text-sm font-semibold tracking-wide">{systemName}</span>
       </header>
 
       {open ? (
@@ -44,13 +46,11 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           (open ? "translate-x-0" : "-translate-x-full")
         }
       >
-        <div className="flex items-center gap-2 border-b border-gold-400/30 px-5 py-5">
-          <span className="h-2 w-2 rounded-full bg-gold-400" aria-hidden />
+        <div className="flex items-center gap-2.5 border-b border-gold-400/30 px-5 py-5">
+          <Logo path={settings?.logo_path ?? null} className="h-8 w-8" />
           <div className="min-w-0">
-            <p className="font-display text-xs font-semibold tracking-wide text-gold-200">
-              ระบบบริหารงบประมาณโรงเรียน
-            </p>
-            <p className="truncate text-sm text-sky-100">งานพัสดุ · สำรวจครุภัณฑ์</p>
+            <p className="truncate font-display text-xs font-semibold tracking-wide text-gold-200">{systemName}</p>
+            <p className="truncate text-sm text-sky-100">{settings?.school_name || "งานพัสดุ · สำรวจครุภัณฑ์"}</p>
           </div>
         </div>
 

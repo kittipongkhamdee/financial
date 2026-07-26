@@ -88,3 +88,10 @@ export type Masters = {
   budgetSources: MasterRow[];
   units: MasterRow[];
 };
+
+/** ตั้งค่าระบบ — ชื่อโรงเรียน/ชื่อระบบ/โลโก้ อ่านได้ทุกคนแม้ยังไม่ล็อกอิน แก้ได้เฉพาะ admin */
+export type SchoolSettings = {
+  school_name: string | null;
+  system_name: string;
+  logo_path: string | null;
+};

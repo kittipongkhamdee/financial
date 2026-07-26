@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { Alert, ButtonLabel, Field, inputClass } from "@/components/ui";
+import { Alert, ButtonLabel, Field, Logo, inputClass } from "@/components/ui";
+import { useSchoolSettings } from "@/lib/hooks";
 
 type Mode = "guest" | "signin" | "signup";
 
@@ -11,6 +12,7 @@ export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const nextPath = params.get("next") || "/";
+  const { settings } = useSchoolSettings();
 
   const [mode, setMode] = useState<Mode>("guest");
   const [email, setEmail] = useState("");
@@ -86,12 +88,16 @@ export function LoginForm() {
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-5 py-10">
-      <div className="mb-6">
-        <p className="font-display text-xs font-semibold tracking-wide text-sky-700">
-          ระบบบริหารงบประมาณโรงเรียน
-        </p>
-        <h1 className="mt-1 font-display text-2xl font-bold text-stone-900">สำรวจครุภัณฑ์</h1>
-        <p className="mt-1 text-sm text-stone-600">แบบสำรวจครุภัณฑ์รายห้อง ปีการศึกษา 2569</p>
+      <div className="mb-6 flex items-start gap-3">
+        <Logo path={settings?.logo_path ?? null} className="mt-0.5 h-10 w-10" />
+        <div>
+          <p className="font-display text-xs font-semibold tracking-wide text-sky-700">
+            {settings?.system_name ?? "ระบบบริหารงบประมาณโรงเรียน"}
+            {settings?.school_name ? ` · ${settings.school_name}` : ""}
+          </p>
+          <h1 className="mt-1 font-display text-2xl font-bold text-stone-900">สำรวจครุภัณฑ์</h1>
+          <p className="mt-1 text-sm text-stone-600">แบบสำรวจครุภัณฑ์รายห้อง ปีการศึกษา 2569</p>
+        </div>
       </div>
 
       {mode === "guest" ? (

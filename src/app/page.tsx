@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
+import { Logo } from "@/components/ui";
 import { formatBaht, formatCount } from "@/lib/format";
 import { STATUS_LABEL } from "@/lib/constants";
 import type { AssetItemStatus } from "@/lib/types";
@@ -10,7 +11,7 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: round }] = await Promise.all([
+  const [{ data: profile }, { data: round }, { data: settings }] = await Promise.all([
     supabase
       .from("asset_survey_profiles")
       .select("full_name, department, role")
@@ -22,6 +23,11 @@ export default async function HomePage() {
       .eq("is_open", true)
       .order("year", { ascending: false })
       .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("asset_school_settings")
+      .select("school_name, system_name, logo_path")
+      .eq("id", true)
       .maybeSingle(),
   ]);
 
@@ -47,17 +53,21 @@ export default async function HomePage() {
   return (
     <div className="mx-auto w-full max-w-3xl flex-1 px-5 py-8">
       <header className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-display text-xs font-semibold tracking-wide text-sky-700">
-            ระบบบริหารงบประมาณโรงเรียน · งานพัสดุ
-          </p>
-          <h1 className="mt-1 font-display text-2xl font-bold text-stone-900">
-            {round?.name ?? "ยังไม่เปิดรอบสำรวจ"}
-          </h1>
-          <p className="mt-1 text-sm text-stone-600">
-            {isGuest ? "โหมดใช้งานทั่วไป — ไม่ต้องล็อกอิน" : profile?.full_name ?? "ครูผู้กรอก"}
-            {!isGuest && profile?.department ? ` · ${profile.department}` : ""}
-          </p>
+        <div className="flex items-start gap-3">
+          <Logo path={settings?.logo_path ?? null} className="mt-0.5 h-9 w-9" />
+          <div>
+            <p className="font-display text-xs font-semibold tracking-wide text-sky-700">
+              {settings?.system_name ?? "ระบบบริหารงบประมาณโรงเรียน"}
+              {settings?.school_name ? ` · ${settings.school_name}` : ""} · งานพัสดุ
+            </p>
+            <h1 className="mt-1 font-display text-2xl font-bold text-stone-900">
+              {round?.name ?? "ยังไม่เปิดรอบสำรวจ"}
+            </h1>
+            <p className="mt-1 text-sm text-stone-600">
+              {isGuest ? "โหมดใช้งานทั่วไป — ไม่ต้องล็อกอิน" : profile?.full_name ?? "ครูผู้กรอก"}
+              {!isGuest && profile?.department ? ` · ${profile.department}` : ""}
+            </p>
+          </div>
         </div>
         <form action="/auth/signout" method="post">
           <button className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-600">
