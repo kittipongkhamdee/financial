@@ -3,7 +3,15 @@
 import { supabaseBrowser } from "./supabase/client";
 import { PHOTO_BUCKET } from "./constants";
 import { compressImage } from "./image";
-import type { AssetItem, AssetItemDraft, AssetItemStatus, Masters, SurveyProfile } from "./types";
+import type {
+  AssetItem,
+  AssetItemDraft,
+  AssetItemStatus,
+  CategoryRow,
+  Masters,
+  MasterRow,
+  SurveyProfile,
+} from "./types";
 
 /** ข้อความ error ที่อ่านรู้เรื่อง — ครูไม่ควรเห็น error code ของ Postgres */
 export function humanizeError(error: unknown): string {
@@ -330,4 +338,121 @@ export async function signedPhotoUrl(path: string): Promise<string | null> {
 
   signedUrlCache.set(path, { url: data.signedUrl, expiresAt: Date.now() + 3_000_000 });
   return data.signedUrl;
+}
+
+/* -----------------------------------------------------------------------------
+ * หน้า admin — จัดการ master data / รอบสำรวจ / สิทธิ์ผู้ใช้
+ * RLS: master data + รอบสำรวจ เขียนได้ทั้ง supply/admin (asset_is_staff()),
+ * ส่วนสิทธิ์ผู้ใช้ (asset_survey_profiles) แก้ role คนอื่นได้เฉพาะ admin เท่านั้น
+ * -------------------------------------------------------------------------- */
+
+export type MasterTable =
+  | "asset_buildings"
+  | "asset_categories"
+  | "asset_budget_sources"
+  | "asset_units";
+
+/** เห็นทุกแถวรวมที่ปิดใช้งานแล้ว — ต่างจาก fetchMasters ที่กรองเฉพาะ is_active สำหรับฟอร์มครู */
+export async function fetchAllMasterRows(table: MasterTable): Promise<(MasterRow | CategoryRow)[]> {
+  const supabase = supabaseBrowser();
+  const columns =
+    table === "asset_categories"
+      ? "id, name, sort_order, is_active, useful_life_years, depreciation_rate_percent"
+      : "id, name, sort_order, is_active";
+  const { data, error } = await supabase.from(table).select(columns).order("sort_order");
+  if (error) throw error;
+  return (data as (MasterRow | CategoryRow)[]) ?? [];
+}
+
+export async function createMasterRow(
+  table: MasterTable,
+  row: { name: string; sort_order: number; useful_life_years?: number | null; depreciation_rate_percent?: number | null },
+): Promise<void> {
+  const supabase = supabaseBrowser();
+  const { error } = await supabase.from(table).insert(row);
+  if (error) throw error;
+}
+
+export async function updateMasterRow(
+  table: MasterTable,
+  id: string,
+  patch: Partial<{
+    name: string;
+    sort_order: number;
+    is_active: boolean;
+    useful_life_years: number | null;
+    depreciation_rate_percent: number | null;
+  }>,
+): Promise<void> {
+  const supabase = supabaseBrowser();
+  const { error } = await supabase.from(table).update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export type SurveyRoundRow = { id: string; year: number; name: string; is_open: boolean };
+
+export async function fetchAllRounds(): Promise<SurveyRoundRow[]> {
+  const supabase = supabaseBrowser();
+  const { data, error } = await supabase
+    .from("asset_survey_rounds")
+    .select("id, year, name, is_open")
+    .order("year", { ascending: false });
+  if (error) throw error;
+  return (data as SurveyRoundRow[]) ?? [];
+}
+
+export async function createRound(year: number, name: string, openNow: boolean): Promise<void> {
+  const supabase = supabaseBrowser();
+  if (openNow) {
+    const { error: closeError } = await supabase
+      .from("asset_survey_rounds")
+      .update({ is_open: false })
+      .eq("is_open", true);
+    if (closeError) throw closeError;
+  }
+  const { error } = await supabase.from("asset_survey_rounds").insert({ year, name, is_open: openNow });
+  if (error) throw error;
+}
+
+/** เปิดรอบนี้ — ปิดรอบอื่นที่เปิดค้างอยู่ทั้งหมดก่อน ให้เหลือรอบเปิดพร้อมกันแค่รอบเดียว */
+export async function openRound(id: string): Promise<void> {
+  const supabase = supabaseBrowser();
+  const { error: closeError } = await supabase
+    .from("asset_survey_rounds")
+    .update({ is_open: false })
+    .eq("is_open", true);
+  if (closeError) throw closeError;
+
+  const { error } = await supabase.from("asset_survey_rounds").update({ is_open: true }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function closeRound(id: string): Promise<void> {
+  const supabase = supabaseBrowser();
+  const { error } = await supabase.from("asset_survey_rounds").update({ is_open: false }).eq("id", id);
+  if (error) throw error;
+}
+
+export type AdminUserRow = {
+  user_id: string;
+  email: string | null;
+  full_name: string;
+  department: string | null;
+  role: SurveyProfile["role"];
+  is_anonymous: boolean;
+  created_at: string;
+};
+
+/** เห็นรายชื่อทุกคนเฉพาะตอนที่ตัวเองเป็น admin เท่านั้น (เช็คในฟังก์ชันฝั่ง DB อีกชั้น) */
+export async function fetchAdminUsers(): Promise<AdminUserRow[]> {
+  const supabase = supabaseBrowser();
+  const { data, error } = await supabase.rpc("asset_admin_list_users");
+  if (error) throw error;
+  return (data as AdminUserRow[]) ?? [];
+}
+
+export async function updateUserRole(userId: string, role: SurveyProfile["role"]): Promise<void> {
+  const supabase = supabaseBrowser();
+  const { error } = await supabase.from("asset_survey_profiles").update({ role }).eq("user_id", userId);
+  if (error) throw error;
 }

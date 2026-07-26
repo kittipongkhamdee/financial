@@ -125,6 +125,14 @@ export default async function HomePage() {
                 body="ดูรายการที่ครูส่งมาจากทุกคน ออกหมายเลขครุภัณฑ์ อนุมัติหรือตีกลับให้แก้"
               />
             ) : null}
+            {profile?.role === "admin" ? (
+              <ModeCard
+                href="/admin"
+                badge="สำหรับแอดมิน"
+                title="ตั้งค่าระบบ"
+                body="เปิด-ปิดรอบสำรวจ จัดการอาคาร/หมวดหมู่/แหล่งงบ และสิทธิ์ผู้ใช้งาน"
+              />
+            ) : null}
           </section>
 
           {rows.length > 0 ? (

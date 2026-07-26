@@ -21,6 +21,7 @@ function readJson<T>(key: string): T | null {
 export function useMasters() {
   const [masters, setMasters] = useState<Masters | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -34,9 +35,11 @@ export function useMasters() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [tick]);
 
-  return { masters, error };
+  const refetch = useCallback(() => setTick((t) => t + 1), []);
+
+  return { masters, error, refetch };
 }
 
 export function useProfile() {
