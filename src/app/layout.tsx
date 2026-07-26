@@ -23,7 +23,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   // ครูถ่ายรูปแล้วต้องซูมดูรายละเอียดป้ายเลขครุภัณฑ์ได้ จึงไม่ล็อก maximum-scale
-  themeColor: "#0369a1",
+  themeColor: "#1e3a5f",
 };
 
 // Supabase อยู่ ap-southeast-1 (สิงคโปร์) — รันฟังก์ชันฝั่ง Vercel ที่ sin1 ด้วย

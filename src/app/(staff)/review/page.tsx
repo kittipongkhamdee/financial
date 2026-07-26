@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { ItemEditor } from "@/components/ItemEditor";
 import { Alert, ButtonLabel, PhotoThumb, Toast, inputClass, useToast } from "@/components/ui";
 import {
@@ -173,9 +172,6 @@ export default function ReviewPage() {
     return (
       <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-8">
         <Alert tone="error">หน้านี้สำหรับเจ้าหน้าที่พัสดุหรือแอดมินเท่านั้น</Alert>
-        <Link href="/" className="mt-3 inline-block text-sm text-sky-700">
-          ‹ กลับหน้าแรก
-        </Link>
       </main>
     );
   }
@@ -190,10 +186,7 @@ export default function ReviewPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-6">
-      <Link href="/" className="text-sm text-sky-700">
-        ‹ หน้าแรก
-      </Link>
-      <h1 className="mt-1 font-display text-xl font-bold text-stone-900">ตรวจสอบครุภัณฑ์</h1>
+      <h1 className="font-display text-xl font-bold text-stone-900">ตรวจสอบครุภัณฑ์</h1>
       <p className="text-sm text-stone-600">{masters?.round ? masters.round.name : ""} · รายการของทุกคนในรอบนี้</p>
 
       {error ? (

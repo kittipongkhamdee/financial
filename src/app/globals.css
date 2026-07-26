@@ -3,6 +3,33 @@
 @theme inline {
   --font-sans: var(--font-sarabun), "Sarabun", system-ui, sans-serif;
   --font-display: var(--font-plex-thai), "IBM Plex Sans Thai", system-ui, sans-serif;
+
+  /*
+   * โทนกรมท่า-ทอง (navy + gold) ธีมงานการเงิน/งบประมาณ
+   * ทับค่าสี "sky" เดิมของ Tailwind ทั้งสเกล — ทุก class sky-* ที่ใช้อยู่ทั่วแอป
+   * (ปุ่มหลัก, ลิงก์, badge ฯลฯ) จะกลายเป็นกรมท่าโดยอัตโนมัติ ไม่ต้องไล่แก้ทีละไฟล์
+   */
+  --color-sky-50: #eef3f9;
+  --color-sky-100: #d9e5f2;
+  --color-sky-200: #b3cbe4;
+  --color-sky-300: #82a8cf;
+  --color-sky-400: #5883b3;
+  --color-sky-500: #3c6493;
+  --color-sky-600: #2b4d76;
+  --color-sky-700: #1e3a5f;
+  --color-sky-800: #152a45;
+  --color-sky-900: #0c1a2c;
+  --color-sky-950: #071120;
+
+  /* สีทอง — ใช้จุดเน้นพิเศษ (แถบโลโก้, badge เด่น, สถิติสำคัญ) ไม่ใช่สีปุ่มหลัก */
+  --color-gold-50: #fdf9ec;
+  --color-gold-100: #f9edc4;
+  --color-gold-200: #f2d888;
+  --color-gold-300: #e9c157;
+  --color-gold-400: #d9a635;
+  --color-gold-500: #b8860b;
+  --color-gold-600: #96690f;
+  --color-gold-700: #755112;
 }
 
 html {
@@ -11,7 +38,7 @@ html {
 }
 
 body {
-  background: #f5f3ef;
+  background: #f4f5f7;
   color: #1c1917;
 }
 

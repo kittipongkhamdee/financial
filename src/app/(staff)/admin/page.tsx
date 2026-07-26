@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Alert, ButtonLabel, Toast, inputClass, useToast } from "@/components/ui";
 import {
   type AdminUserRow,
@@ -51,19 +50,13 @@ export default function AdminPage() {
     return (
       <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-8">
         <Alert tone="error">หน้านี้สำหรับแอดมินเท่านั้น</Alert>
-        <Link href="/" className="mt-3 inline-block text-sm text-sky-700">
-          ‹ กลับหน้าแรก
-        </Link>
       </main>
     );
   }
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-6">
-      <Link href="/" className="text-sm text-sky-700">
-        ‹ หน้าแรก
-      </Link>
-      <h1 className="mt-1 font-display text-xl font-bold text-stone-900">ตั้งค่าระบบ</h1>
+      <h1 className="font-display text-xl font-bold text-stone-900">ตั้งค่าระบบ</h1>
       <p className="text-sm text-stone-600">รอบสำรวจ · ข้อมูลตั้งต้น · สิทธิ์ผู้ใช้งาน</p>
 
       {error ? (
