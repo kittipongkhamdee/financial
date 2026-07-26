@@ -51,7 +51,11 @@ export async function fetchMasters(): Promise<Masters> {
       .limit(1)
       .maybeSingle(),
     master("asset_buildings"),
-    master("asset_categories"),
+    supabase
+      .from("asset_categories")
+      .select("id, name, sort_order, is_active, useful_life_years, depreciation_rate_percent")
+      .eq("is_active", true)
+      .order("sort_order"),
     master("asset_budget_sources"),
     master("asset_units"),
   ]);
@@ -78,6 +82,24 @@ export async function fetchMyItems(roundId: string): Promise<AssetItem[]> {
     .eq("round_id", roundId)
     .eq("surveyed_by", user.id)
     .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data as AssetItem[]) ?? [];
+}
+
+/**
+ * รายการครุภัณฑ์สำหรับพิมพ์ทะเบียนคุมทรัพย์สิน — ไม่กรองตาม surveyed_by เอง
+ * RLS จะจำกัดให้เห็นตามสิทธิ์จริงอยู่แล้ว (ครูเห็นเฉพาะของตัวเอง / งานพัสดุ-แอดมินเห็นทั้งหมด)
+ */
+export async function fetchRegisterItems(roundId: string): Promise<AssetItem[]> {
+  const supabase = supabaseBrowser();
+  const { data, error } = await supabase
+    .from("asset_items")
+    .select("*")
+    .eq("round_id", roundId)
+    .order("building")
+    .order("room")
+    .order("name");
 
   if (error) throw error;
   return (data as AssetItem[]) ?? [];

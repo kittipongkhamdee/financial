@@ -113,10 +113,22 @@ export default function ItemsPage() {
       <Link href="/" className="text-sm text-sky-700">
         ‹ หน้าแรก
       </Link>
-      <h1 className="mt-1 font-display text-xl font-bold text-stone-900">รายการของฉัน</h1>
-      <p className="text-sm text-stone-600">
-        {formatCount(items.length)} รายการ · มูลค่ารวม {formatBaht(totalValue)} บาท
-      </p>
+      <div className="mt-1 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-xl font-bold text-stone-900">รายการของฉัน</h1>
+          <p className="text-sm text-stone-600">
+            {formatCount(items.length)} รายการ · มูลค่ารวม {formatBaht(totalValue)} บาท
+          </p>
+        </div>
+        {items.length > 0 ? (
+          <Link
+            href="/items/print"
+            className="shrink-0 rounded-xl border border-sky-700 px-3 py-2 text-sm font-semibold text-sky-700"
+          >
+            พิมพ์ทะเบียนคุมทรัพย์สิน
+          </Link>
+        ) : null}
+      </div>
 
       {error ? (
         <div className="mt-3">

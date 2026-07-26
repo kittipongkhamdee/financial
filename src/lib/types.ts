@@ -11,6 +11,12 @@ export type MasterRow = {
   is_active: boolean;
 };
 
+/** หมวดครุภัณฑ์ — มีอายุการใช้งาน/อัตราค่าเสื่อมราคาตามตาราง สพฐ. ไว้คำนวณค่าเสื่อมราคา */
+export type CategoryRow = MasterRow & {
+  useful_life_years: number | null;
+  depreciation_rate_percent: number | null;
+};
+
 export type SurveyRound = {
   id: string;
   year: number;
@@ -78,7 +84,7 @@ export type RoomLocation = {
 export type Masters = {
   round: SurveyRound | null;
   buildings: MasterRow[];
-  categories: MasterRow[];
+  categories: CategoryRow[];
   budgetSources: MasterRow[];
   units: MasterRow[];
 };
