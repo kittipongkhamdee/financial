@@ -192,6 +192,9 @@ export default function SurveyPage() {
             price: parseNumber(draft.price),
           },
           photoPath,
+          // ถ่ายรูปครบตั้งแต่ขั้นแรกของฟอร์มนี้แล้ว จึงส่งให้งานพัสดุทันที
+          // ไม่ต้องแวะไปกดตรวจทาน/ส่งอีกรอบที่ "รายการของฉัน"
+          "submitted",
         );
         created.push(item);
       }
@@ -203,7 +206,7 @@ export default function SurveyPage() {
       });
 
       if (mode === "finish") {
-        router.push("/items");
+        router.push("/");
         return;
       }
 

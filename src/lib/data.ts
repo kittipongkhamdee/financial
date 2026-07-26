@@ -3,7 +3,7 @@
 import { supabaseBrowser } from "./supabase/client";
 import { PHOTO_BUCKET } from "./constants";
 import { compressImage } from "./image";
-import type { AssetItem, AssetItemDraft, Masters, SurveyProfile } from "./types";
+import type { AssetItem, AssetItemDraft, AssetItemStatus, Masters, SurveyProfile } from "./types";
 
 /** ข้อความ error ที่อ่านรู้เรื่อง — ครูไม่ควรเห็น error code ของ Postgres */
 export function humanizeError(error: unknown): string {
@@ -109,6 +109,7 @@ export async function insertItem(
   roundId: string,
   draft: AssetItemDraft,
   photoPath: string | null,
+  status: AssetItemStatus = "draft",
 ): Promise<AssetItem> {
   const supabase = supabaseBrowser();
   const {
@@ -124,6 +125,7 @@ export async function insertItem(
       round_id: roundId,
       photo_path: photoPath,
       surveyed_by: user.id,
+      status,
     })
     .select("*")
     .single();
