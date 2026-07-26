@@ -19,7 +19,7 @@ import { CONDITIONS, CURRENT_BE_YEAR, FLOORS } from "@/lib/constants";
 import { findByAssetCode, humanizeError, insertItem, uploadPhoto } from "@/lib/data";
 import { describeLocation, parseNumber, shiftAssetCodeSerial } from "@/lib/format";
 import { useLastRoom, useMasters } from "@/lib/hooks";
-import type { AssetCondition, AssetItem } from "@/lib/types";
+import { ACQUISITION_METHODS, type AcquisitionMethod, type AssetCondition, type AssetItem } from "@/lib/types";
 
 type Draft = {
   building: string;
@@ -35,6 +35,12 @@ type Draft = {
   price: string;
   condition: AssetCondition | null;
   note: string;
+  model: string;
+  spec: string;
+  acquisitionMethod: AcquisitionMethod | "";
+  vendorName: string;
+  vendorAddress: string;
+  vendorPhone: string;
 };
 
 const EMPTY_ITEM = {
@@ -48,6 +54,12 @@ const EMPTY_ITEM = {
   price: "",
   condition: null,
   note: "",
+  model: "",
+  spec: "",
+  acquisitionMethod: "",
+  vendorName: "",
+  vendorAddress: "",
+  vendorPhone: "",
 } satisfies Omit<Draft, "building" | "floor" | "room">;
 
 const STEP_TITLES = ["ถ่ายรูปครุภัณฑ์ก่อน", "ครุภัณฑ์อยู่ที่ไหน", "ครุภัณฑ์ชิ้นนี้คืออะไร", "สภาพการใช้งาน"];
@@ -191,6 +203,12 @@ export default function SurveyPage() {
             acquired_year: parseNumber(draft.acquiredYear),
             budget_source_id: draft.budgetSourceId,
             price: parseNumber(draft.price),
+            model: draft.model.trim() || null,
+            spec: draft.spec.trim() || null,
+            acquisition_method: draft.acquisitionMethod || null,
+            vendor_name: draft.vendorName.trim() || null,
+            vendor_address: draft.vendorAddress.trim() || null,
+            vendor_phone: draft.vendorPhone.trim() || null,
           },
           photoPath,
           // ถ่ายรูปครบตั้งแต่ขั้นแรกของฟอร์มนี้แล้ว จึงส่งให้งานพัสดุทันที
@@ -483,6 +501,60 @@ export default function SurveyPage() {
                     placeholder="22,000"
                   />
                 </Field>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-dashed border-stone-300 bg-stone-50 px-4 py-3">
+              <p className="font-display text-sm font-medium text-stone-700">
+                ข้อมูลเพิ่มเติม (ถ้าทราบ)
+              </p>
+              <p className="mt-0.5 text-xs text-stone-500">ไม่บังคับ — เว้นว่างไว้ให้พัสดุกรอกภายหลังได้</p>
+              <div className="mt-3 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="รุ่น/แบบ">
+                    <input className={inputClass} value={draft.model} onChange={(e) => set("model", e.target.value)} />
+                  </Field>
+                  <Field label="ลักษณะ/คุณสมบัติ">
+                    <input className={inputClass} value={draft.spec} onChange={(e) => set("spec", e.target.value)} />
+                  </Field>
+                </div>
+                <Field label="วิธีการได้มา">
+                  <select
+                    className={inputClass}
+                    value={draft.acquisitionMethod}
+                    onChange={(e) => set("acquisitionMethod", e.target.value as AcquisitionMethod | "")}
+                  >
+                    <option value="">— ไม่ระบุ —</option>
+                    {ACQUISITION_METHODS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="ชื่อผู้ขาย/ผู้รับจ้าง/ผู้บริจาค">
+                  <input
+                    className={inputClass}
+                    value={draft.vendorName}
+                    onChange={(e) => set("vendorName", e.target.value)}
+                  />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="ที่อยู่ผู้ขาย">
+                    <input
+                      className={inputClass}
+                      value={draft.vendorAddress}
+                      onChange={(e) => set("vendorAddress", e.target.value)}
+                    />
+                  </Field>
+                  <Field label="โทรศัพท์ผู้ขาย">
+                    <input
+                      className={inputClass}
+                      value={draft.vendorPhone}
+                      onChange={(e) => set("vendorPhone", e.target.value)}
+                    />
+                  </Field>
+                </div>
               </div>
             </div>
           </>

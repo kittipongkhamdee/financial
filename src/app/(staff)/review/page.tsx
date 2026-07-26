@@ -271,7 +271,6 @@ export default function ReviewPage() {
                           item={item}
                           masters={masters}
                           updateFn={updateItemAsStaff}
-                          showStaffFields
                           onCancel={() => setEditingId(null)}
                           onSaved={(updated) => {
                             setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));

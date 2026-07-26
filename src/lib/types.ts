@@ -76,7 +76,11 @@ export type AssetItem = {
   updated_at: string;
 } & StaffAssetFields;
 
-/** ข้อมูลที่ฟอร์ม (ทั้ง 1b และ 1d) ส่งเข้ามาเพื่อบันทึก */
+/**
+ * ข้อมูลที่ฟอร์ม (ทั้ง 1b และ 1d) ส่งเข้ามาเพื่อบันทึก
+ * ฟิลด์จาก StaffAssetFields เป็น optional ทั้งหมด — ครูกรอกได้ถ้ารู้ แต่ไม่บังคับ
+ * เว้นว่างไว้ให้พัสดุ/แอดมินเติมทีหลังในหน้าตรวจสอบครุภัณฑ์ก็ได้
+ */
 export type AssetItemDraft = {
   building: string;
   floor: string | null;
@@ -92,7 +96,7 @@ export type AssetItemDraft = {
   acquired_year: number | null;
   budget_source_id: string | null;
   price: number | null;
-};
+} & Partial<StaffAssetFields>;
 
 /** ตำแหน่งที่จำไว้ให้ครูไม่ต้องเลือกซ้ำทุกรายการ */
 export type RoomLocation = {

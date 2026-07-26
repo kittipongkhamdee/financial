@@ -27,8 +27,8 @@ import {
  * ฟอร์มแก้ไขรายการครุภัณฑ์ — ใช้ร่วมกันทั้งหน้า "รายการของฉัน" (ครูแก้ของตัวเอง)
  * และหน้า "ตรวจสอบครุภัณฑ์" (พัสดุ/แอดมินแก้ของใครก็ได้) ต่างกันแค่ฟังก์ชัน updateFn ที่ส่งเข้ามา
  *
- * showStaffFields เปิดเฉพาะตอนเรียกจากหน้าพัสดุ/แอดมิน — ช่องข้อมูลฝั่งจัดซื้อ
- * (ผู้ขาย/ที่อยู่/โทรศัพท์/วิธีการได้มา/รุ่นแบบ/ลักษณะคุณสมบัติ) ที่ครูไม่มีข้อมูลตอนสำรวจ
+ * ช่องข้อมูลฝั่งจัดซื้อ (ผู้ขาย/ที่อยู่/โทรศัพท์/วิธีการได้มา/รุ่นแบบ/ลักษณะคุณสมบัติ)
+ * แสดงให้ทุกคนเห็นเหมือนกัน — ครูกรอกได้ถ้ารู้ แต่ไม่บังคับ เว้นว่างไว้ให้พัสดุ/แอดมินเติมทีหลังก็ได้
  */
 export function ItemEditor({
   item,
@@ -36,7 +36,6 @@ export function ItemEditor({
   updateFn,
   onCancel,
   onSaved,
-  showStaffFields = false,
 }: {
   item: AssetItem;
   masters: Masters;
@@ -46,7 +45,6 @@ export function ItemEditor({
   ) => Promise<AssetItem>;
   onCancel: () => void;
   onSaved: (item: AssetItem) => void;
-  showStaffFields?: boolean;
 }) {
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState(item.quantity);
@@ -91,16 +89,12 @@ export function ItemEditor({
         price: parseNumber(price),
         note: note.trim() || null,
         photo_path: photoPath,
-        ...(showStaffFields
-          ? {
-              model: model.trim() || null,
-              spec: spec.trim() || null,
-              vendor_name: vendorName.trim() || null,
-              vendor_address: vendorAddress.trim() || null,
-              vendor_phone: vendorPhone.trim() || null,
-              acquisition_method: (acquisitionMethod || null) as AcquisitionMethod | null,
-            }
-          : {}),
+        model: model.trim() || null,
+        spec: spec.trim() || null,
+        vendor_name: vendorName.trim() || null,
+        vendor_address: vendorAddress.trim() || null,
+        vendor_phone: vendorPhone.trim() || null,
+        acquisition_method: (acquisitionMethod || null) as AcquisitionMethod | null,
       });
       onSaved(updated);
     } catch (e) {
@@ -182,50 +176,48 @@ export function ItemEditor({
         <textarea rows={2} className={inputClass} value={note} onChange={(e) => setNote(e.target.value)} />
       </Field>
 
-      {showStaffFields ? (
-        <div className="space-y-3 rounded-xl border border-dashed border-stone-300 bg-stone-50 p-3">
-          <p className="font-display text-xs font-semibold text-stone-500">
-            ข้อมูลฝั่งจัดซื้อ (ครูไม่มีข้อมูลตอนสำรวจ — พัสดุ/แอดมินกรอกเพิ่มได้)
-          </p>
+      <div className="space-y-3 rounded-xl border border-dashed border-stone-300 bg-stone-50 p-3">
+        <p className="font-display text-xs font-semibold text-stone-500">
+          ข้อมูลเพิ่มเติม (ถ้าทราบ) — ไม่บังคับ เว้นว่างไว้ให้พัสดุกรอกภายหลังได้
+        </p>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="รุ่น/แบบ">
-              <input className={inputClass} value={model} onChange={(e) => setModel(e.target.value)} />
-            </Field>
-            <Field label="ลักษณะ/คุณสมบัติ">
-              <input className={inputClass} value={spec} onChange={(e) => setSpec(e.target.value)} />
-            </Field>
-          </div>
-
-          <Field label="วิธีการได้มา">
-            <select
-              className={inputClass}
-              value={acquisitionMethod}
-              onChange={(e) => setAcquisitionMethod(e.target.value)}
-            >
-              <option value="">— ไม่ระบุ —</option>
-              {ACQUISITION_METHODS.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="รุ่น/แบบ">
+            <input className={inputClass} value={model} onChange={(e) => setModel(e.target.value)} />
           </Field>
-
-          <Field label="ชื่อผู้ขาย/ผู้รับจ้าง/ผู้บริจาค">
-            <input className={inputClass} value={vendorName} onChange={(e) => setVendorName(e.target.value)} />
+          <Field label="ลักษณะ/คุณสมบัติ">
+            <input className={inputClass} value={spec} onChange={(e) => setSpec(e.target.value)} />
           </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="ที่อยู่ผู้ขาย">
-              <input className={inputClass} value={vendorAddress} onChange={(e) => setVendorAddress(e.target.value)} />
-            </Field>
-            <Field label="โทรศัพท์ผู้ขาย">
-              <input className={inputClass} value={vendorPhone} onChange={(e) => setVendorPhone(e.target.value)} />
-            </Field>
-          </div>
         </div>
-      ) : null}
+
+        <Field label="วิธีการได้มา">
+          <select
+            className={inputClass}
+            value={acquisitionMethod}
+            onChange={(e) => setAcquisitionMethod(e.target.value)}
+          >
+            <option value="">— ไม่ระบุ —</option>
+            {ACQUISITION_METHODS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="ชื่อผู้ขาย/ผู้รับจ้าง/ผู้บริจาค">
+          <input className={inputClass} value={vendorName} onChange={(e) => setVendorName(e.target.value)} />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="ที่อยู่ผู้ขาย">
+            <input className={inputClass} value={vendorAddress} onChange={(e) => setVendorAddress(e.target.value)} />
+          </Field>
+          <Field label="โทรศัพท์ผู้ขาย">
+            <input className={inputClass} value={vendorPhone} onChange={(e) => setVendorPhone(e.target.value)} />
+          </Field>
+        </div>
+      </div>
 
       <Field label={item.photo_path ? "เปลี่ยนรูป" : "เพิ่มรูป"} required={!item.photo_path} group>
         {item.photo_path && !newPhoto ? (
