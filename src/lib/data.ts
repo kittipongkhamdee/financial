@@ -15,6 +15,19 @@ import type {
   SurveyProfile,
 } from "./types";
 
+/**
+ * user ปัจจุบัน — ใช้ getSession() ไม่ใช่ getUser() เพราะ getUser() ยิง request ไปตรวจ JWT
+ * กับเซิร์ฟเวอร์ Auth ทุกครั้ง (round-trip จริง) ส่วน getSession() อ่านจาก local storage เลย
+ * ปลอดภัยเท่ากัน เพราะสิทธิ์จริงถูกบังคับที่ RLS ฝั่งฐานข้อมูลจาก JWT อยู่แล้ว ไม่ได้พึ่ง user.id ที่ส่งมาจากฝั่งนี้
+ */
+async function getSessionUser() {
+  const supabase = supabaseBrowser();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return session?.user ?? null;
+}
+
 /** ข้อความ error ที่อ่านรู้เรื่อง — ครูไม่ควรเห็น error code ของ Postgres */
 export function humanizeError(error: unknown): string {
   const e = error as { code?: string; message?: string } | null;
@@ -29,9 +42,7 @@ export function humanizeError(error: unknown): string {
 
 export async function fetchProfile(): Promise<SurveyProfile | null> {
   const supabase = supabaseBrowser();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return null;
 
   const { data } = await supabase
@@ -83,9 +94,7 @@ export async function fetchMasters(): Promise<Masters> {
 
 export async function fetchMyItems(roundId: string): Promise<AssetItem[]> {
   const supabase = supabaseBrowser();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return [];
 
   const { data, error } = await supabase
@@ -171,9 +180,7 @@ export async function updateItemAsStaff(
 export async function approveItems(ids: string[]): Promise<void> {
   if (ids.length === 0) return;
   const supabase = supabaseBrowser();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
 
   const { error } = await supabase
@@ -186,9 +193,7 @@ export async function approveItems(ids: string[]): Promise<void> {
 
 export async function rejectItem(id: string, reason: string): Promise<void> {
   const supabase = supabaseBrowser();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
 
   const { error } = await supabase
@@ -211,9 +216,7 @@ export async function insertItem(
   status: AssetItemStatus = "draft",
 ): Promise<AssetItem> {
   const supabase = supabaseBrowser();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
 
   const { data, error } = await supabase
@@ -258,9 +261,7 @@ export async function deleteItem(id: string): Promise<void> {
 /** ส่งรายการที่ยังไม่ส่งทั้งหมดของรอบนี้ให้งานพัสดุตรวจสอบ */
 export async function submitDrafts(roundId: string): Promise<number> {
   const supabase = supabaseBrowser();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
 
   const { data, error } = await supabase
@@ -301,9 +302,7 @@ export async function findByAssetCode(
  */
 export async function uploadPhoto(file: File): Promise<string> {
   const supabase = supabaseBrowser();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
 
   const { blob, ext, contentType } = await compressImage(file);

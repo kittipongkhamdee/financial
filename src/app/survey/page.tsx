@@ -225,6 +225,8 @@ export default function SurveyPage() {
       });
 
       if (mode === "finish") {
+        // ไม่เซ็ต busy เป็น false ตรงนี้ — ปล่อยให้ปุ่มค้างสถานะ "กำลังบันทึก" ต่อจนกว่าหน้าแรกจะขึ้นจริง
+        // ไม่งั้นปุ่มจะดูเหมือนหยุดทำงานเฉย ๆ ระหว่างที่หน้าแรกยังโหลดข้อมูลอยู่
         router.push("/");
         return;
       }
@@ -236,6 +238,7 @@ export default function SurveyPage() {
       setCodeEntries([{ value: "", touched: false }]);
       setDuplicates([null]);
       setStep(0);
+      setBusy(false);
       show(
         created.length > 1
           ? `บันทึกแล้ว ${created.length} ชิ้น — ${draft.name}`
@@ -243,7 +246,6 @@ export default function SurveyPage() {
       );
     } catch (e) {
       setError(humanizeError(e));
-    } finally {
       setBusy(false);
     }
   }
@@ -635,7 +637,7 @@ export default function SurveyPage() {
               onClick={() => save("finish")}
               className="w-full rounded-xl border border-stone-300 py-3 text-base font-medium text-stone-700 disabled:opacity-50"
             >
-              <ButtonLabel busy={busy}>บันทึกแล้วจบการสำรวจห้องนี้</ButtonLabel>
+              <ButtonLabel busy={busy}>{busy ? "กำลังบันทึก…" : "บันทึกแล้วจบการสำรวจห้องนี้"}</ButtonLabel>
             </button>
           </div>
         )}

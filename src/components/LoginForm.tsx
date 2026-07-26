@@ -45,9 +45,9 @@ export function LoginForm() {
     setBusy(true);
     setError(null);
     const { error } = await supabaseBrowser().auth.signInAnonymously();
-    setBusy(false);
 
     if (error) {
+      setBusy(false);
       setError(
         error.message.toLowerCase().includes("anonymous")
           ? "ยังไม่ได้เปิดโหมดใช้งานทั่วไปในระบบ — แจ้งผู้ดูแลให้เปิด Anonymous sign-ins ที่ Supabase (Authentication → Sign In / Providers)"
@@ -55,6 +55,8 @@ export function LoginForm() {
       );
       return;
     }
+    // ไม่เซ็ต busy เป็น false ตรงนี้ — ปล่อยให้ปุ่มค้างสถานะ "กำลังเข้าใช้งาน" ต่อจนกว่าหน้าแรกจะขึ้นจริง
+    // ไม่งั้นปุ่มจะดูเหมือนหยุดทำงานเฉย ๆ ระหว่างที่หน้าแรกยังโหลดข้อมูลอยู่
     done();
   }
 
@@ -72,20 +74,21 @@ export function LoginForm() {
         password,
         options: { data: { full_name: fullName.trim(), department: department.trim() } },
       });
-      setBusy(false);
       if (error) {
+        setBusy(false);
         setError(error.message);
         return;
       }
       if (!data.session) {
+        setBusy(false);
         setNotice("สมัครเรียบร้อย — กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ");
         setMode("signin");
         return;
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      setBusy(false);
       if (error) {
+        setBusy(false);
         setError(
           error.message === "Invalid login credentials"
             ? "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
@@ -95,6 +98,7 @@ export function LoginForm() {
       }
     }
 
+    // ไม่เซ็ต busy เป็น false ตรงนี้ — ปล่อยให้ปุ่มค้างสถานะ "กำลังดำเนินการ" ต่อจนกว่าหน้าแรกจะขึ้นจริง
     done();
   }
 
