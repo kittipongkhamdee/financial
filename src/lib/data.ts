@@ -105,6 +105,93 @@ export async function fetchRegisterItems(roundId: string): Promise<AssetItem[]> 
   return (data as AssetItem[]) ?? [];
 }
 
+/**
+ * คิวตรวจสอบของงานพัสดุ — ต้อง role supply/admin เท่านั้นถึงจะเห็นของทุกคน (RLS asset_is_staff())
+ * ครูทั่วไปที่หลงเข้ามาจะเห็นแค่ของตัวเอง ไม่ใช่ error แต่หน้าจะกันไว้อีกชั้นด้วย role check
+ */
+export async function fetchReviewItems(roundId: string): Promise<AssetItem[]> {
+  const supabase = supabaseBrowser();
+  const { data, error } = await supabase
+    .from("asset_items")
+    .select("*")
+    .eq("round_id", roundId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  return (data as AssetItem[]) ?? [];
+}
+
+/** ชื่อครูผู้กรอก — asset_items.surveyed_by อ้างถึง auth.users ตรง ๆ ไม่ผ่าน FK ไปตาราง profiles จึงต้องดึงแยก */
+export async function fetchProfilesByIds(
+  ids: string[],
+): Promise<Map<string, Pick<SurveyProfile, "full_name" | "department">>> {
+  const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length === 0) return new Map();
+
+  const supabase = supabaseBrowser();
+  const { data, error } = await supabase
+    .from("asset_survey_profiles")
+    .select("user_id, full_name, department")
+    .in("user_id", uniqueIds);
+
+  if (error) throw error;
+  const rows = (data ?? []) as { user_id: string; full_name: string; department: string | null }[];
+  return new Map(rows.map((p) => [p.user_id, { full_name: p.full_name, department: p.department }]));
+}
+
+/** งานพัสดุแก้ไขรายการของครูคนไหนก็ได้ (asset_items_staff_all policy) — ใช้แก้เลขครุภัณฑ์/ข้อมูลก่อนอนุมัติ */
+export async function updateItemAsStaff(
+  id: string,
+  patch: Partial<AssetItemDraft>,
+): Promise<AssetItem> {
+  const supabase = supabaseBrowser();
+  const { data, error } = await supabase
+    .from("asset_items")
+    .update(patch)
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as AssetItem;
+}
+
+export async function approveItems(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const supabase = supabaseBrowser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
+
+  const { error } = await supabase
+    .from("asset_items")
+    .update({ status: "approved", reject_reason: null, reviewed_by: user.id, reviewed_at: new Date().toISOString() })
+    .in("id", ids);
+
+  if (error) throw error;
+}
+
+export async function rejectItem(id: string, reason: string): Promise<void> {
+  const supabase = supabaseBrowser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
+
+  const { error } = await supabase
+    .from("asset_items")
+    .update({
+      status: "rejected",
+      reject_reason: reason.trim(),
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
 export async function insertItem(
   roundId: string,
   draft: AssetItemDraft,

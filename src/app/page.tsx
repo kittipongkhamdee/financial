@@ -117,6 +117,14 @@ export default async function HomePage() {
               title="รายการของฉัน"
               body="ดูรายการที่ส่งแล้ว พิมพ์ทะเบียนคุมทรัพย์สิน หรือแก้ไขรายการที่ถูกตีกลับให้แก้"
             />
+            {profile?.role === "supply" || profile?.role === "admin" ? (
+              <ModeCard
+                href="/review"
+                badge="สำหรับเจ้าหน้าที่พัสดุ"
+                title="ตรวจสอบครุภัณฑ์"
+                body="ดูรายการที่ครูส่งมาจากทุกคน ออกหมายเลขครุภัณฑ์ อนุมัติหรือตีกลับให้แก้"
+              />
+            ) : null}
           </section>
 
           {rows.length > 0 ? (
