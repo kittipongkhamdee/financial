@@ -139,10 +139,6 @@ export default function ItemsPage() {
           ยังไม่มีรายการ — เริ่มกรอกได้จาก{" "}
           <Link href="/survey" className="text-sky-700 underline">
             ฟอร์มมือถือ
-          </Link>{" "}
-          หรือ{" "}
-          <Link href="/entry" className="text-sky-700 underline">
-            โหมดกรอกเร็ว
           </Link>
         </p>
       ) : (

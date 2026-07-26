@@ -82,8 +82,7 @@ export default async function HomePage() {
           {unsent > 0 ? (
             <>
               {" "}
-              — ยังมี <strong className="text-stone-900">{unsent}</strong> รายการค้างส่ง
-              (จากโหมดกรอกเร็ว หรือถูกตีกลับให้แก้)
+              — ยังมี <strong className="text-stone-900">{unsent}</strong> รายการค้างส่ง (ถูกตีกลับให้แก้)
             </>
           ) : null}
           <br />
@@ -114,12 +113,6 @@ export default async function HomePage() {
               badge="สำหรับมือถือ"
               title="กรอกทีละขั้น — ถ่ายรูปนำ"
               body="เปิดกล้องก่อน ถ่ายรูปแล้วค่อยกรอกทีละคำถามชุดเล็ก ๆ เหมาะกับตอนเดินสำรวจในห้อง"
-            />
-            <ModeCard
-              href="/entry"
-              badge="สำหรับคอมพิวเตอร์"
-              title="โหมดกรอกเร็ว 10–50 รายการรวด"
-              body="ล็อกห้องไว้ที่หัวจอ กรอกทีละแถว Enter = แถวใหม่ · Ctrl/⌘+D = ทำซ้ำแถวบน แล้วลากรูปมาวางจับคู่"
             />
             <ModeCard
               href="/items"
