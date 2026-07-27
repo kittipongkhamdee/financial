@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Alert } from "@/components/ui";
 import { CONDITION_LABEL } from "@/lib/constants";
 import { calculateDepreciation, type DepreciationResult } from "@/lib/depreciation";
+import { downloadCsv, rowsToCsv } from "@/lib/csv";
 import { fetchRegisterItems, humanizeError } from "@/lib/data";
 import { describeLocation, formatBaht, formatCount } from "@/lib/format";
 import { useMasters, useProfile } from "@/lib/hooks";
@@ -93,6 +94,44 @@ export default function PrintRegisterPage() {
 
   const printedAt = new Intl.DateTimeFormat("th-TH", { dateStyle: "long" }).format(new Date());
 
+  function handleExportCsv() {
+    const headers = [
+      "ลำดับ",
+      "รายการ",
+      "หมวดหมู่",
+      "หมายเลขครุภัณฑ์",
+      "จำนวน",
+      "หน่วย",
+      "ที่ตั้ง",
+      "สภาพ",
+      "ปีที่ได้มา",
+      "ราคาทุน (บาท)",
+      "อายุใช้งาน (ปี)",
+      "ค่าเสื่อม/ปี (บาท)",
+      "ค่าเสื่อมสะสม (บาท)",
+      "มูลค่าสุทธิ (บาท)",
+    ];
+    const dataRows = rows.map(({ item, category, depreciation }, i) => [
+      i + 1,
+      item.name,
+      category?.name ?? "",
+      item.asset_code ?? "ยังไม่ติดป้าย",
+      item.quantity,
+      item.unit ?? "",
+      describeLocation(item.building, item.floor, item.room),
+      CONDITION_LABEL[item.condition],
+      item.acquired_year,
+      depreciation ? depreciation.cost : item.price,
+      category?.useful_life_years ?? null,
+      depreciation ? depreciation.annualDepreciation : null,
+      depreciation ? depreciation.accumulatedDepreciation : null,
+      depreciation ? depreciation.netBookValue : null,
+    ]);
+    const csv = rowsToCsv(headers, dataRows);
+    const roundName = masters?.round?.name ?? "ทะเบียนคุมทรัพย์สิน";
+    downloadCsv(`${roundName}.csv`, csv);
+  }
+
   if (mastersError) {
     return (
       <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-8">
@@ -120,6 +159,14 @@ export default function PrintRegisterPage() {
           >
             การ์ดรายชิ้น (แบบราชการ)
           </Link>
+          <button
+            type="button"
+            disabled={rows.length === 0}
+            onClick={handleExportCsv}
+            className="rounded-xl border border-sky-700 px-4 py-2 text-sm font-semibold text-sky-700 disabled:cursor-not-allowed disabled:border-stone-300 disabled:text-stone-400"
+          >
+            ส่งออก Excel
+          </button>
           <button
             type="button"
             onClick={() => window.print()}
