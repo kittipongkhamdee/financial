@@ -8,7 +8,6 @@ import {
   approveDisbursementRequest,
   fetchApprovedDisbursementTotals,
   fetchDisbursementRequests,
-  fetchProfileNamesByIds,
   rejectDisbursementRequest,
 } from "@/lib/plan-data";
 import type { PlanDisbursementRequestWithContext } from "@/lib/plan-types";
@@ -22,7 +21,6 @@ export default function ApproveDisbursementPage() {
 
   const [pending, setPending] = useState<PlanDisbursementRequestWithContext[]>([]);
   const [remaining, setRemaining] = useState<Map<string, number>>(new Map());
-  const [names, setNames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
@@ -35,12 +33,7 @@ export default function ApproveDisbursementPage() {
     fetchDisbursementRequests({ status: "pending" })
       .then(async (rows) => {
         setPending(rows);
-        const [totals, nameMap] = await Promise.all([
-          fetchApprovedDisbursementTotals(rows.map((r) => r.activity_id)),
-          fetchProfileNamesByIds(rows.map((r) => r.requested_by)),
-        ]);
-        setRemaining(totals);
-        setNames(nameMap);
+        setRemaining(await fetchApprovedDisbursementTotals(rows.map((r) => r.activity_id)));
       })
       .catch((e) => setError(humanizeError(e)))
       .finally(() => setLoading(false));
@@ -120,7 +113,7 @@ export default function ApproveDisbursementPage() {
                   {r.activity.name ?? "(งบอยู่ที่โครงการ)"} · {r.group.name}
                 </p>
                 <p className="mt-1 text-xs text-stone-500">
-                  ผู้ขอ: {names.get(r.requested_by) ?? "ไม่ทราบ"} ·{" "}
+                  ผู้ขอ: {r.requester_name || "ไม่ระบุ"} ·{" "}
                   {new Intl.DateTimeFormat("th-TH", { dateStyle: "short", timeStyle: "short" }).format(new Date(r.requested_at))}
                 </p>
                 {r.purpose ? <p className="mt-1.5 text-sm text-stone-700">{r.purpose}</p> : null}

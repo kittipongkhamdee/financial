@@ -77,13 +77,14 @@ export type PlanOfficialRate = {
 
 export type PlanDisbursementStatus = "pending" | "approved" | "rejected";
 
-/** คำขออนุมัติเบิกจ่ายงบประมาณต่อกิจกรรม — แอดมินกรอกแทนผู้รับผิดชอบ ผู้อำนวยการอนุมัติ */
+/** คำขออนุมัติเบิกจ่ายงบประมาณต่อกิจกรรม — เปิดให้ทุกคนกรอกเอง (ไม่ต้องล็อกอิน) ผู้อำนวยการอนุมัติ */
 export type PlanDisbursementRequest = {
   id: string;
   activity_id: string;
   requested_amount: number;
   purpose: string | null;
-  requested_by: string;
+  requester_name: string;
+  requested_by: string | null;
   requested_at: string;
   status: PlanDisbursementStatus;
   approved_by: string | null;

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PUBLIC_PATHS = ["/", "/survey", "/login", "/auth"];
+const PUBLIC_PATHS = ["/", "/survey", "/login", "/auth", "/plan/requests"];
 
 /**
  * Next 16 เรียก middleware ว่า proxy — หน้าที่คือต่ออายุ session ของ Supabase

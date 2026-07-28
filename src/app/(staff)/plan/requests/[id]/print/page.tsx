@@ -33,9 +33,8 @@ export default function DisbursementRequestPrintPage({ params }: { params: Promi
           return;
         }
         setRequest(r);
-        const ids = [r.requested_by, ...(r.approved_by ? [r.approved_by] : [])];
         const [nameMap, totals] = await Promise.all([
-          fetchProfileNamesByIds(ids),
+          r.approved_by ? fetchProfileNamesByIds([r.approved_by]) : Promise.resolve(new Map<string, string>()),
           fetchApprovedDisbursementTotals([r.activity_id]),
         ]);
         setNames(nameMap);
@@ -127,7 +126,7 @@ export default function DisbursementRequestPrintPage({ params }: { params: Promi
         <div className="mt-10 grid grid-cols-2 gap-8 text-center text-sm">
           <div>
             <p>ลงชื่อ ....................................................</p>
-            <p className="mt-1">( {names.get(request.requested_by) ?? "..............................."} )</p>
+            <p className="mt-1">( {request.requester_name || "..............................."} )</p>
             <p className="mt-1 text-stone-500">ผู้ขออนุมัติ</p>
             <p className="mt-4 text-stone-500">วันที่ .....................................</p>
           </div>

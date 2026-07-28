@@ -45,21 +45,21 @@ export default function DisbursementRequestsPage() {
 
   const [projectId, setProjectId] = useState("");
   const [activityId, setActivityId] = useState("");
+  const [requesterName, setRequesterName] = useState("");
   const [amount, setAmount] = useState("");
   const [purpose, setPurpose] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const isAdmin = profile ? profile.role === "admin" : null;
+  const isAdmin = profile?.role === "admin";
 
   useEffect(() => {
-    if (isAdmin !== true) return;
     fetchPlanYears()
       .then((rows) => {
         setYears(rows);
         setYearId((rows.find((r) => r.is_open) ?? rows[0])?.id ?? null);
       })
       .catch((e) => setError(humanizeError(e)));
-  }, [isAdmin]);
+  }, []);
 
   function reload(currentYearId: string) {
     setLoading(true);
@@ -90,15 +90,16 @@ export default function DisbursementRequestsPage() {
     : null;
 
   async function handleSubmit() {
-    if (!activityId || !amount) return;
+    if (!activityId || !amount || !requesterName.trim()) return;
     setSubmitting(true);
     setError(null);
     try {
-      await createDisbursementRequest(activityId, Number(amount), purpose.trim() || null);
+      await createDisbursementRequest(activityId, Number(amount), purpose.trim() || null, requesterName.trim());
+      setRequesterName("");
       setAmount("");
       setPurpose("");
       if (yearId) reload(yearId);
-      show("สร้างคำขอแล้ว — พิมพ์เอกสารให้ผู้ขอเซ็นชื่อได้จากรายการด้านล่าง");
+      show("สร้างคำขอแล้ว — พิมพ์เอกสารเพื่อเซ็นชื่อและส่งต่อผู้อำนวยการอนุมัติได้จากรายการด้านล่าง");
     } catch (e) {
       setError(humanizeError(e));
     } finally {
@@ -127,21 +128,15 @@ export default function DisbursementRequestsPage() {
     return map;
   }, [projects]);
 
-  if (profile && !isAdmin) {
-    return (
-      <main className="mx-auto w-full max-w-2xl flex-1 px-5 py-8">
-        <Alert tone="error">หน้านี้สำหรับแอดมินเท่านั้น</Alert>
-      </main>
-    );
-  }
-
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-6">
       <Link href="/plan" className="text-sm text-sky-700">
         ‹ งานแผนงาน
       </Link>
       <h1 className="mt-1 font-display text-xl font-bold text-stone-900">คำขออนุมัติเบิกจ่ายงบประมาณ</h1>
-      <p className="text-sm text-stone-600">กรอกแทนผู้รับผิดชอบโครงการ แล้วพิมพ์เอกสารให้เซ็นชื่อ ก่อนส่งต่อผู้อำนวยการอนุมัติ</p>
+      <p className="text-sm text-stone-600">
+        ทุกคนกรอกเองได้ ไม่ต้องล็อกอิน — กรอกแล้วพิมพ์เอกสารให้เซ็นชื่อ ก่อนส่งต่อผู้อำนวยการอนุมัติ
+      </p>
 
       {error ? (
         <div className="mt-3">
@@ -216,6 +211,16 @@ export default function DisbursementRequestsPage() {
           ) : null}
 
           <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-stone-700">ชื่อผู้ขออนุมัติ (ผู้รับผิดชอบโครงการ/กิจกรรม)</span>
+            <input
+              value={requesterName}
+              onChange={(e) => setRequesterName(e.target.value)}
+              placeholder="ชื่อ-นามสกุล"
+              className={inputClass}
+            />
+          </label>
+
+          <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-stone-700">ยอดที่ขอเบิกครั้งนี้ (บาท)</span>
             <input
               value={amount}
@@ -239,7 +244,7 @@ export default function DisbursementRequestsPage() {
 
           <button
             type="button"
-            disabled={!activityId || !amount || submitting}
+            disabled={!activityId || !amount || !requesterName.trim() || submitting}
             onClick={handleSubmit}
             className="rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white disabled:bg-stone-300"
           >
@@ -263,6 +268,7 @@ export default function DisbursementRequestsPage() {
                   <p className="text-xs text-stone-500">
                     {r.activity.name ?? "(งบอยู่ที่โครงการ)"} · {r.group.name}
                   </p>
+                  <p className="mt-1 text-xs text-stone-500">ผู้ขอ: {r.requester_name || "ไม่ระบุ"}</p>
                   {r.purpose ? <p className="mt-1 text-xs text-stone-600">{r.purpose}</p> : null}
                   {r.reject_reason ? <p className="mt-1 text-xs text-rose-700">เหตุผลไม่อนุมัติ: {r.reject_reason}</p> : null}
                 </div>
@@ -277,7 +283,7 @@ export default function DisbursementRequestsPage() {
                 <Link href={`/plan/requests/${r.id}/print`} className="text-sky-700 underline">
                   พิมพ์เอกสาร
                 </Link>
-                {r.status === "pending" ? (
+                {r.status === "pending" && isAdmin ? (
                   <button
                     type="button"
                     disabled={busyId === r.id}

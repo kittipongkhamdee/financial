@@ -394,13 +394,19 @@ export async function createDisbursementRequest(
   activityId: string,
   requestedAmount: number,
   purpose: string | null,
+  requesterName: string,
 ): Promise<PlanDisbursementRequest> {
   const supabase = supabaseBrowser();
   const user = await getSessionUser();
-  if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
   const { data, error } = await supabase
     .from("plan_disbursement_requests")
-    .insert({ activity_id: activityId, requested_amount: requestedAmount, purpose, requested_by: user.id })
+    .insert({
+      activity_id: activityId,
+      requested_amount: requestedAmount,
+      purpose,
+      requester_name: requesterName,
+      requested_by: user?.id ?? null,
+    })
     .select("*")
     .single();
   if (error) throw error;
