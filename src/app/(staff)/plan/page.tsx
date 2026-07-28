@@ -15,6 +15,7 @@ import {
   deletePlanOfficialRate,
   deletePlanProject,
   deletePlanRevenueLine,
+  fetchApprovedDisbursementTotals,
   fetchPlanAdminGroups,
   fetchPlanOfficialRates,
   fetchPlanProjectsWithActivities,
@@ -100,14 +101,22 @@ export default function PlanPage() {
           <h1 className="font-display text-xl font-bold text-stone-900">งานแผนงาน — ประมาณการงบประมาณรายรับ-รายจ่าย</h1>
           <p className="text-sm text-stone-600">ส่วนที่ 3 ของแผนปฏิบัติการประจำปี</p>
         </div>
-        {yearId ? (
+        <div className="flex shrink-0 flex-wrap gap-2">
           <Link
-            href={`/plan/print?year=${yearId}`}
-            className="shrink-0 rounded-xl border border-sky-700 px-3 py-2 text-sm font-semibold text-sky-700"
+            href="/plan/requests"
+            className="rounded-xl border border-sky-700 px-3 py-2 text-sm font-semibold text-sky-700"
           >
-            พิมพ์สรุป
+            คำขอเบิกจ่าย
           </Link>
-        ) : null}
+          {yearId ? (
+            <Link
+              href={`/plan/print?year=${yearId}`}
+              className="rounded-xl border border-sky-700 px-3 py-2 text-sm font-semibold text-sky-700"
+            >
+              พิมพ์สรุป
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       {error ? (
@@ -425,15 +434,18 @@ function ExpensePanel({
 }) {
   const [groups, setGroups] = useState<PlanAdminGroup[]>([]);
   const [projects, setProjects] = useState<PlanProjectWithActivities[]>([]);
+  const [spent, setSpent] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   function reload() {
     setLoading(true);
     Promise.all([fetchPlanAdminGroups(), fetchPlanProjectsWithActivities(budgetYearId)])
-      .then(([g, p]) => {
+      .then(async ([g, p]) => {
         setGroups(g);
         setProjects(p);
+        const activityIds = p.flatMap((proj) => proj.activities.map((a) => a.id));
+        setSpent(await fetchApprovedDisbursementTotals(activityIds));
       })
       .catch((e) => onError(humanizeError(e)))
       .finally(() => setLoading(false));
@@ -592,12 +604,16 @@ function ExpensePanel({
                           <tr className="text-left text-xs text-stone-500">
                             <th className="py-1 pr-2 font-medium">กิจกรรม</th>
                             <th className="py-1 pr-2 font-medium">งบประมาณ</th>
+                            <th className="py-1 pr-2 font-medium">เบิกแล้ว / คงเหลือ</th>
                             <th className="py-1 pr-2 font-medium">ผู้รับผิดชอบ</th>
                             <th className="py-1"></th>
                           </tr>
                         </thead>
                         <tbody>
-                          {project.activities.map((activity) => (
+                          {project.activities.map((activity) => {
+                            const used = spent.get(activity.id) ?? 0;
+                            const left = activity.budget - used;
+                            return (
                             <tr key={activity.id} className="border-t border-stone-200">
                               <td className="py-1.5 pr-2">
                                 <input
@@ -623,6 +639,13 @@ function ExpensePanel({
                                   className={`${inputClass} w-28 py-1 text-sm`}
                                 />
                               </td>
+                              <td className="py-1.5 pr-2 whitespace-nowrap text-xs">
+                                <span className="text-stone-500">{formatBaht(used)}</span>
+                                {" / "}
+                                <span className={left < 0 ? "font-semibold text-rose-700" : "font-semibold text-stone-700"}>
+                                  {formatBaht(left)}
+                                </span>
+                              </td>
                               <td className="py-1.5 pr-2">
                                 <input
                                   defaultValue={activity.responsible ?? ""}
@@ -645,7 +668,8 @@ function ExpensePanel({
                                 </button>
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

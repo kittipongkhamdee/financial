@@ -2,7 +2,7 @@
 
 export type AssetCondition = "usable" | "damaged" | "disposal";
 export type AssetItemStatus = "draft" | "submitted" | "approved" | "rejected";
-export type AssetUserRole = "teacher" | "supply" | "admin";
+export type AssetUserRole = "teacher" | "supply" | "admin" | "director";
 
 export type MasterRow = {
   id: string;

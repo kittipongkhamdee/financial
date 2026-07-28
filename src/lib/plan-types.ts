@@ -74,3 +74,26 @@ export type PlanOfficialRate = {
   note: string;
   sort_order: number;
 };
+
+export type PlanDisbursementStatus = "pending" | "approved" | "rejected";
+
+/** คำขออนุมัติเบิกจ่ายงบประมาณต่อกิจกรรม — แอดมินกรอกแทนผู้รับผิดชอบ ผู้อำนวยการอนุมัติ */
+export type PlanDisbursementRequest = {
+  id: string;
+  activity_id: string;
+  requested_amount: number;
+  purpose: string | null;
+  requested_by: string;
+  requested_at: string;
+  status: PlanDisbursementStatus;
+  approved_by: string | null;
+  approved_at: string | null;
+  reject_reason: string | null;
+};
+
+/** คำขอพร้อมบริบท (กิจกรรม/โครงการ/กลุ่มบริหาร) — ใช้แสดงผล/พิมพ์ */
+export type PlanDisbursementRequestWithContext = PlanDisbursementRequest & {
+  activity: PlanActivity;
+  project: PlanProject;
+  group: PlanAdminGroup;
+};

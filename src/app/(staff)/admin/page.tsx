@@ -28,6 +28,7 @@ const ROLE_LABEL: Record<AssetUserRole, string> = {
   teacher: "ครู",
   supply: "เจ้าหน้าที่พัสดุ",
   admin: "แอดมิน",
+  director: "ผู้อำนวยการ",
 };
 
 const TABS = [

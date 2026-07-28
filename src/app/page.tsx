@@ -62,52 +62,60 @@ export default async function HomePage() {
         ) : null}
       </header>
 
-      {!round ? (
-        <p className="mt-8 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          ยังไม่มีรอบสำรวจที่เปิดอยู่ — ติดต่อเจ้าหน้าที่พัสดุเพื่อเปิดรอบปีการศึกษาใหม่
-        </p>
-      ) : (
-        <section className="mt-6 space-y-3">
+      <section className="mt-6 space-y-3">
+        {!round ? (
+          <p className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            ยังไม่มีรอบสำรวจที่เปิดอยู่ — ติดต่อเจ้าหน้าที่พัสดุเพื่อเปิดรอบปีการศึกษาใหม่
+          </p>
+        ) : (
           <ModeCard
             href="/survey"
             badge="เปิดกล้องแล้วเริ่มได้เลย"
             title="สำรวจครุภัณฑ์"
             body="ไม่ต้องล็อกอิน ไม่ต้องสมัคร — เปิดกล้องก่อน ถ่ายรูปแล้วค่อยกรอกทีละคำถามชุดเล็ก ๆ เหมาะกับตอนเดินสำรวจในห้อง"
           />
-          {isStaff ? (
-            <ModeCard
-              href="/dashboard"
-              badge="สำหรับเจ้าหน้าที่พัสดุ"
-              title="แดชบอร์ด"
-              body="ความคืบหน้ารายอาคาร/ห้อง และมูลค่าสินทรัพย์รวมตามหมวดหมู่"
-            />
-          ) : null}
-          {isStaff ? (
-            <ModeCard
-              href="/review"
-              badge="สำหรับเจ้าหน้าที่พัสดุ"
-              title="ตรวจสอบครุภัณฑ์"
-              body="ดูรายการที่ส่งเข้ามาทั้งหมด ออกหมายเลขครุภัณฑ์ อนุมัติหรือตีกลับให้แก้"
-            />
-          ) : null}
-          {profile?.role === "admin" ? (
-            <ModeCard
-              href="/plan"
-              badge="สำหรับแอดมิน"
-              title="งานแผนงาน"
-              body="ประมาณการงบประมาณรายรับ-รายจ่ายประจำปี (ส่วนที่ 3)"
-            />
-          ) : null}
-          {profile?.role === "admin" ? (
-            <ModeCard
-              href="/admin"
-              badge="สำหรับแอดมิน"
-              title="ตั้งค่าระบบ"
-              body="เปิด-ปิดรอบสำรวจ จัดการอาคาร/หมวดหมู่/แหล่งงบ และสิทธิ์ผู้ใช้งาน"
-            />
-          ) : null}
-        </section>
-      )}
+        )}
+        {isStaff ? (
+          <ModeCard
+            href="/dashboard"
+            badge="สำหรับเจ้าหน้าที่พัสดุ"
+            title="แดชบอร์ด"
+            body="ความคืบหน้ารายอาคาร/ห้อง และมูลค่าสินทรัพย์รวมตามหมวดหมู่"
+          />
+        ) : null}
+        {isStaff ? (
+          <ModeCard
+            href="/review"
+            badge="สำหรับเจ้าหน้าที่พัสดุ"
+            title="ตรวจสอบครุภัณฑ์"
+            body="ดูรายการที่ส่งเข้ามาทั้งหมด ออกหมายเลขครุภัณฑ์ อนุมัติหรือตีกลับให้แก้"
+          />
+        ) : null}
+        {profile?.role === "admin" ? (
+          <ModeCard
+            href="/plan"
+            badge="สำหรับแอดมิน"
+            title="งานแผนงาน"
+            body="ประมาณการงบประมาณรายรับ-รายจ่ายประจำปี · สร้างคำขอเบิกจ่ายส่งผู้อำนวยการอนุมัติ"
+          />
+        ) : null}
+        {profile?.role === "director" ? (
+          <ModeCard
+            href="/plan/approve"
+            badge="สำหรับผู้อำนวยการ"
+            title="อนุมัติเบิกจ่าย"
+            body="ตรวจและอนุมัติ/ไม่อนุมัติคำขอเบิกจ่ายงบประมาณตามโครงการ"
+          />
+        ) : null}
+        {profile?.role === "admin" ? (
+          <ModeCard
+            href="/admin"
+            badge="สำหรับแอดมิน"
+            title="ตั้งค่าระบบ"
+            body="เปิด-ปิดรอบสำรวจ จัดการอาคาร/หมวดหมู่/แหล่งงบ และสิทธิ์ผู้ใช้งาน"
+          />
+        ) : null}
+      </section>
 
       {!user ? (
         <p className="mt-8 text-center text-sm">

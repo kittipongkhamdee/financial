@@ -1,10 +1,13 @@
 "use client";
 
+import { getSessionUser } from "./data";
 import { supabaseBrowser } from "./supabase/client";
 import type {
   PlanActivity,
   PlanAdminGroup,
   PlanBudgetYear,
+  PlanDisbursementRequest,
+  PlanDisbursementRequestWithContext,
   PlanOfficialRate,
   PlanProject,
   PlanProjectWithActivities,
@@ -270,4 +273,164 @@ export async function importOfficialRatesAsRevenueLines(
   );
   if (error) throw error;
   return toImport.length;
+}
+
+/* -----------------------------------------------------------------------------
+ * ขออนุมัติเบิกจ่ายงบประมาณต่อกิจกรรม
+ * -------------------------------------------------------------------------- */
+
+/** ยอดที่อนุมัติเบิกไปแล้วสะสม ต่อกิจกรรม — ใช้คำนวณ "คงเหลือ" = budget - ยอดนี้ */
+export async function fetchApprovedDisbursementTotals(activityIds: string[]): Promise<Map<string, number>> {
+  if (activityIds.length === 0) return new Map();
+  const supabase = supabaseBrowser();
+  const { data, error } = await supabase
+    .from("plan_disbursement_requests")
+    .select("activity_id, requested_amount")
+    .in("activity_id", activityIds)
+    .eq("status", "approved");
+  if (error) throw error;
+  const map = new Map<string, number>();
+  for (const row of (data as { activity_id: string; requested_amount: number }[]) ?? []) {
+    map.set(row.activity_id, (map.get(row.activity_id) ?? 0) + Number(row.requested_amount));
+  }
+  return map;
+}
+
+/**
+ * คำขอเบิกจ่ายพร้อมบริบท (กิจกรรม/โครงการ/กลุ่มบริหาร) — filter ตามปีงบประมาณ และ/หรือสถานะ
+ * ไม่ระบุ budgetYearId = ทุกปี (ใช้กับหน้าผู้อำนวยการที่อยากเห็นคำขอรอทั้งหมดไม่ว่าปีไหน)
+ */
+export async function fetchDisbursementRequests(filter?: {
+  status?: PlanDisbursementRequest["status"];
+  budgetYearId?: string;
+}): Promise<PlanDisbursementRequestWithContext[]> {
+  const supabase = supabaseBrowser();
+
+  let projectsQuery = supabase.from("plan_projects").select("*");
+  if (filter?.budgetYearId) projectsQuery = projectsQuery.eq("budget_year_id", filter.budgetYearId);
+  const [{ data: projects, error: projErr }, { data: groups, error: groupErr }] = await Promise.all([
+    projectsQuery,
+    supabase.from("plan_admin_groups").select("*"),
+  ]);
+  if (projErr) throw projErr;
+  if (groupErr) throw groupErr;
+
+  const projectRows = (projects as PlanProject[]) ?? [];
+  if (projectRows.length === 0) return [];
+
+  const { data: activities, error: actErr } = await supabase
+    .from("plan_activities")
+    .select("*")
+    .in(
+      "project_id",
+      projectRows.map((p) => p.id),
+    );
+  if (actErr) throw actErr;
+
+  const activityRows = (activities as PlanActivity[]) ?? [];
+  if (activityRows.length === 0) return [];
+
+  let reqQuery = supabase
+    .from("plan_disbursement_requests")
+    .select("*")
+    .in(
+      "activity_id",
+      activityRows.map((a) => a.id),
+    )
+    .order("requested_at", { ascending: false });
+  if (filter?.status) reqQuery = reqQuery.eq("status", filter.status);
+  const { data: requests, error: reqErr } = await reqQuery;
+  if (reqErr) throw reqErr;
+
+  const projectById = new Map(projectRows.map((p) => [p.id, p]));
+  const groupById = new Map(((groups as PlanAdminGroup[]) ?? []).map((g) => [g.id, g]));
+  const activityById = new Map(activityRows.map((a) => [a.id, a]));
+
+  return ((requests as PlanDisbursementRequest[]) ?? []).flatMap((r) => {
+    const activity = activityById.get(r.activity_id);
+    const project = activity ? projectById.get(activity.project_id) : undefined;
+    const group = project ? groupById.get(project.admin_group_id) : undefined;
+    if (!activity || !project || !group) return [];
+    return [{ ...r, requested_amount: Number(r.requested_amount), activity, project, group }];
+  });
+}
+
+export async function fetchDisbursementRequestWithContext(id: string): Promise<PlanDisbursementRequestWithContext | null> {
+  const supabase = supabaseBrowser();
+  const { data: request, error } = await supabase.from("plan_disbursement_requests").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  if (!request) return null;
+  const r = request as PlanDisbursementRequest;
+
+  const { data: activity, error: actErr } = await supabase.from("plan_activities").select("*").eq("id", r.activity_id).single();
+  if (actErr) throw actErr;
+  const act = activity as PlanActivity;
+
+  const { data: project, error: projErr } = await supabase.from("plan_projects").select("*").eq("id", act.project_id).single();
+  if (projErr) throw projErr;
+  const proj = project as PlanProject;
+
+  const { data: group, error: groupErr } = await supabase
+    .from("plan_admin_groups")
+    .select("*")
+    .eq("id", proj.admin_group_id)
+    .single();
+  if (groupErr) throw groupErr;
+
+  return { ...r, requested_amount: Number(r.requested_amount), activity: act, project: proj, group: group as PlanAdminGroup };
+}
+
+/** ชื่อผู้ใช้ตาม id — ใช้แสดงชื่อผู้ขอ/ผู้อนุมัติในเอกสารพิมพ์ */
+export async function fetchProfileNamesByIds(ids: string[]): Promise<Map<string, string>> {
+  const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length === 0) return new Map();
+  const supabase = supabaseBrowser();
+  const { data, error } = await supabase.from("asset_survey_profiles").select("user_id, full_name").in("user_id", uniqueIds);
+  if (error) throw error;
+  return new Map(((data as { user_id: string; full_name: string }[]) ?? []).map((p) => [p.user_id, p.full_name]));
+}
+
+export async function createDisbursementRequest(
+  activityId: string,
+  requestedAmount: number,
+  purpose: string | null,
+): Promise<PlanDisbursementRequest> {
+  const supabase = supabaseBrowser();
+  const user = await getSessionUser();
+  if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
+  const { data, error } = await supabase
+    .from("plan_disbursement_requests")
+    .insert({ activity_id: activityId, requested_amount: requestedAmount, purpose, requested_by: user.id })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as PlanDisbursementRequest;
+}
+
+export async function deleteDisbursementRequest(id: string): Promise<void> {
+  const supabase = supabaseBrowser();
+  const { error } = await supabase.from("plan_disbursement_requests").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function approveDisbursementRequest(id: string): Promise<void> {
+  const supabase = supabaseBrowser();
+  const user = await getSessionUser();
+  if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
+  const { error } = await supabase
+    .from("plan_disbursement_requests")
+    .update({ status: "approved", approved_by: user.id, approved_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function rejectDisbursementRequest(id: string, reason: string): Promise<void> {
+  const supabase = supabaseBrowser();
+  const user = await getSessionUser();
+  if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
+  const { error } = await supabase
+    .from("plan_disbursement_requests")
+    .update({ status: "rejected", approved_by: user.id, approved_at: new Date().toISOString(), reject_reason: reason })
+    .eq("id", id);
+  if (error) throw error;
 }

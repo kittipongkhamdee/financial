@@ -20,7 +20,7 @@ import type {
  * กับเซิร์ฟเวอร์ Auth ทุกครั้ง (round-trip จริง) ส่วน getSession() อ่านจาก local storage เลย
  * ปลอดภัยเท่ากัน เพราะสิทธิ์จริงถูกบังคับที่ RLS ฝั่งฐานข้อมูลจาก JWT อยู่แล้ว ไม่ได้พึ่ง user.id ที่ส่งมาจากฝั่งนี้
  */
-async function getSessionUser() {
+export async function getSessionUser() {
   const supabase = supabaseBrowser();
   const {
     data: { session },
