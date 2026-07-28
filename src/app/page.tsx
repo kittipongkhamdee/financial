@@ -92,6 +92,14 @@ export default async function HomePage() {
           ) : null}
           {profile?.role === "admin" ? (
             <ModeCard
+              href="/plan"
+              badge="สำหรับแอดมิน"
+              title="งานแผนงาน"
+              body="ประมาณการงบประมาณรายรับ-รายจ่ายประจำปี (ส่วนที่ 3)"
+            />
+          ) : null}
+          {profile?.role === "admin" ? (
+            <ModeCard
               href="/admin"
               badge="สำหรับแอดมิน"
               title="ตั้งค่าระบบ"

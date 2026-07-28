@@ -9,6 +9,7 @@ import { useProfile, useSchoolSettings } from "@/lib/hooks";
 const NAV = [
   { href: "/dashboard", label: "แดชบอร์ด", icon: ChartIcon, roles: ["supply", "admin"] as const },
   { href: "/review", label: "ตรวจสอบครุภัณฑ์", icon: ClipboardIcon, roles: ["supply", "admin"] as const },
+  { href: "/plan", label: "งานแผนงาน", icon: PlanIcon, roles: ["admin"] as const },
   { href: "/admin", label: "ตั้งค่าระบบ", icon: GearIcon, roles: ["admin"] as const },
 ];
 
@@ -136,6 +137,15 @@ function ClipboardIcon() {
     <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="6" y="4" width="12" height="17" rx="2" />
       <path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1M9 10h6M9 14h6M9 18h3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PlanIcon() {
+  return (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M8 7h8M8 11h8M8 15h5" strokeLinecap="round" />
     </svg>
   );
 }

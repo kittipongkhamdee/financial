@@ -1,0 +1,62 @@
+/** ชนิดข้อมูลงานแผนงาน (เฟส 3 บางส่วน) — ตรงกับ supabase/migrations/20260731000000_plan_budget_estimate.sql */
+
+export type PlanBudgetYear = {
+  id: string;
+  year: number;
+  name: string;
+  is_open: boolean;
+};
+
+export type PlanRevenueType = {
+  id: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+};
+
+export type PlanRevenueLine = {
+  id: string;
+  budget_year_id: string;
+  revenue_type_id: string;
+  level_label: string;
+  student_count: number;
+  rate_per_student: number;
+  total: number;
+  sort_order: number;
+};
+
+export type PlanRevenueLineDraft = {
+  budget_year_id: string;
+  revenue_type_id: string;
+  level_label: string;
+  student_count: number;
+  rate_per_student: number;
+  sort_order?: number;
+};
+
+export type PlanAdminGroup = {
+  id: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+};
+
+export type PlanProject = {
+  id: string;
+  budget_year_id: string;
+  admin_group_id: string;
+  name: string;
+  sort_order: number;
+};
+
+export type PlanActivity = {
+  id: string;
+  project_id: string;
+  name: string | null;
+  budget: number;
+  responsible: string | null;
+  sort_order: number;
+};
+
+/** โครงการพร้อมกิจกรรมย่อย — ใช้แสดงผล/พิมพ์ */
+export type PlanProjectWithActivities = PlanProject & { activities: PlanActivity[] };
