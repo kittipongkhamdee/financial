@@ -5,6 +5,7 @@ import type {
   PlanActivity,
   PlanAdminGroup,
   PlanBudgetYear,
+  PlanOfficialRate,
   PlanProject,
   PlanProjectWithActivities,
   PlanRevenueLine,
@@ -193,4 +194,80 @@ export async function deletePlanActivity(id: string): Promise<void> {
   const supabase = supabaseBrowser();
   const { error } = await supabase.from("plan_activities").delete().eq("id", id);
   if (error) throw error;
+}
+
+/* -----------------------------------------------------------------------------
+ * อัตราเงินอุดหนุนรายหัวทางการ (ประกาศ สพฐ.) — master data อ้างอิง
+ * -------------------------------------------------------------------------- */
+
+export async function fetchPlanOfficialRates(year?: number): Promise<PlanOfficialRate[]> {
+  const supabase = supabaseBrowser();
+  let query = supabase.from("plan_official_rates").select("*").order("sort_order");
+  if (year !== undefined) query = query.eq("year", year);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data as PlanOfficialRate[]) ?? [];
+}
+
+export async function fetchPlanOfficialRateYears(): Promise<number[]> {
+  const supabase = supabaseBrowser();
+  const { data, error } = await supabase.from("plan_official_rates").select("year").order("year", { ascending: false });
+  if (error) throw error;
+  return [...new Set(((data as { year: number }[]) ?? []).map((r) => r.year))];
+}
+
+export async function createPlanOfficialRate(
+  draft: Pick<PlanOfficialRate, "year" | "revenue_type_id" | "level_label" | "rate_per_student" | "note" | "sort_order">,
+): Promise<PlanOfficialRate> {
+  const supabase = supabaseBrowser();
+  const { data, error } = await supabase.from("plan_official_rates").insert(draft).select("*").single();
+  if (error) throw error;
+  return data as PlanOfficialRate;
+}
+
+export async function updatePlanOfficialRate(
+  id: string,
+  patch: Partial<Pick<PlanOfficialRate, "level_label" | "rate_per_student" | "note" | "sort_order">>,
+): Promise<PlanOfficialRate> {
+  const supabase = supabaseBrowser();
+  const { data, error } = await supabase.from("plan_official_rates").update(patch).eq("id", id).select("*").single();
+  if (error) throw error;
+  return data as PlanOfficialRate;
+}
+
+export async function deletePlanOfficialRate(id: string): Promise<void> {
+  const supabase = supabaseBrowser();
+  const { error } = await supabase.from("plan_official_rates").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/**
+ * นำเข้าอัตราทางการของปีนี้เป็นแถวประมาณการรายรับเริ่มต้น (จำนวนนักเรียน = 0 ให้กรอกเอง)
+ * ข้ามระดับที่มีแถวอยู่แล้วในปีงบประมาณ+ประเภทนั้น กันสร้างซ้ำถ้ากดนำเข้าหลายครั้ง
+ */
+export async function importOfficialRatesAsRevenueLines(
+  budgetYearId: string,
+  year: number,
+  revenueTypeId: string,
+  existingLevelLabels: string[],
+): Promise<number> {
+  const rates = await fetchPlanOfficialRates(year);
+  const toImport = rates.filter(
+    (r) => r.revenue_type_id === revenueTypeId && !existingLevelLabels.includes(`${r.level_label}${r.note}`),
+  );
+  if (toImport.length === 0) return 0;
+
+  const supabase = supabaseBrowser();
+  const { error } = await supabase.from("plan_revenue_lines").insert(
+    toImport.map((r) => ({
+      budget_year_id: budgetYearId,
+      revenue_type_id: revenueTypeId,
+      level_label: r.note ? `${r.level_label}${r.note}` : r.level_label,
+      student_count: 0,
+      rate_per_student: r.rate_per_student,
+      sort_order: r.sort_order,
+    })),
+  );
+  if (error) throw error;
+  return toImport.length;
 }

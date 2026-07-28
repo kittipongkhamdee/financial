@@ -60,3 +60,17 @@ export type PlanActivity = {
 
 /** โครงการพร้อมกิจกรรมย่อย — ใช้แสดงผล/พิมพ์ */
 export type PlanProjectWithActivities = PlanProject & { activities: PlanActivity[] };
+
+/**
+ * อัตราเงินอุดหนุนรายหัวทางการ (ประกาศ สพฐ.) — master data อ้างอิง แยกจากตัวเลขจริง
+ * ที่โรงเรียนกรอกใน PlanRevenueLine ใช้เป็นค่าเริ่มต้นตอนตั้งปีงบประมาณใหม่
+ */
+export type PlanOfficialRate = {
+  id: string;
+  year: number;
+  revenue_type_id: string;
+  level_label: string;
+  rate_per_student: number;
+  note: string;
+  sort_order: number;
+};

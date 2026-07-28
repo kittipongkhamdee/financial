@@ -7,24 +7,30 @@ import { CURRENT_BE_YEAR } from "@/lib/constants";
 import { humanizeError } from "@/lib/data";
 import {
   createPlanActivity,
+  createPlanOfficialRate,
   createPlanProject,
   createPlanRevenueLine,
   createPlanYear,
   deletePlanActivity,
+  deletePlanOfficialRate,
   deletePlanProject,
   deletePlanRevenueLine,
   fetchPlanAdminGroups,
+  fetchPlanOfficialRates,
   fetchPlanProjectsWithActivities,
   fetchPlanRevenueLines,
   fetchPlanRevenueTypes,
   fetchPlanYears,
+  importOfficialRatesAsRevenueLines,
   updatePlanActivity,
+  updatePlanOfficialRate,
   updatePlanProject,
   updatePlanRevenueLine,
 } from "@/lib/plan-data";
 import type {
   PlanAdminGroup,
   PlanBudgetYear,
+  PlanOfficialRate,
   PlanProjectWithActivities,
   PlanRevenueLine,
   PlanRevenueType,
@@ -35,6 +41,7 @@ import { formatBaht } from "@/lib/format";
 const TABS = [
   { key: "revenue", label: "3.1 ประมาณการรายรับ" },
   { key: "expense", label: "3.2 ประมาณการรายจ่าย" },
+  { key: "rates", label: "อัตราทางการ (สพฐ.)" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 
@@ -162,9 +169,16 @@ export default function PlanPage() {
           <div className="mt-6">
             {yearId ? (
               tab === "revenue" ? (
-                <RevenuePanel budgetYearId={yearId} onError={setError} onDone={show} />
-              ) : (
+                <RevenuePanel
+                  budgetYearId={yearId}
+                  budgetYear={years.find((y) => y.id === yearId)?.year ?? null}
+                  onError={setError}
+                  onDone={show}
+                />
+              ) : tab === "expense" ? (
                 <ExpensePanel budgetYearId={yearId} onError={setError} onDone={show} />
+              ) : (
+                <OfficialRatesPanel onError={setError} onDone={show} />
               )
             ) : null}
           </div>
@@ -180,10 +194,12 @@ export default function PlanPage() {
 
 function RevenuePanel({
   budgetYearId,
+  budgetYear,
   onError,
   onDone,
 }: {
   budgetYearId: string;
+  budgetYear: number | null;
   onError: (e: string | null) => void;
   onDone: (m: string) => void;
 }) {
@@ -254,6 +270,24 @@ function RevenuePanel({
     }
   }
 
+  async function handleImportOfficialRate(revenueTypeId: string) {
+    if (!budgetYear) return;
+    setBusyId(`import-${revenueTypeId}`);
+    onError(null);
+    try {
+      const existing = lines
+        .filter((l) => l.revenue_type_id === revenueTypeId)
+        .map((l) => l.level_label);
+      const count = await importOfficialRatesAsRevenueLines(budgetYearId, budgetYear, revenueTypeId, existing);
+      reload();
+      onDone(count > 0 ? `นำเข้าอัตราทางการแล้ว ${count} ระดับ` : "ไม่มีอัตราทางการใหม่ให้นำเข้า (มีครบแล้ว หรือยังไม่มีอัตราปีนี้)");
+    } catch (e) {
+      onError(humanizeError(e));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   if (loading) return <p className="text-sm text-stone-500">กำลังโหลด…</p>;
 
   const grandTotal = lines.reduce((sum, l) => sum + l.total, 0);
@@ -267,14 +301,25 @@ function RevenuePanel({
           <div key={type.id} className="rounded-xl border border-stone-200 bg-white p-3">
             <div className="flex items-center justify-between gap-2">
               <p className="font-display text-sm font-semibold text-stone-800">{type.name}</p>
-              <button
-                type="button"
-                disabled={busyId === `new-${type.id}`}
-                onClick={() => handleAddLine(type.id)}
-                className="shrink-0 rounded-lg border border-stone-300 px-2.5 py-1 text-xs text-stone-700 disabled:opacity-50"
-              >
-                <ButtonLabel busy={busyId === `new-${type.id}`}>+ เพิ่มระดับ</ButtonLabel>
-              </button>
+              <div className="flex shrink-0 gap-1.5">
+                <button
+                  type="button"
+                  disabled={busyId === `import-${type.id}` || !budgetYear}
+                  onClick={() => handleImportOfficialRate(type.id)}
+                  title="นำเข้าระดับ+อัตราจากตารางอัตราทางการ (สพฐ.) ของปีนี้ — จำนวนนักเรียนต้องกรอกเอง"
+                  className="rounded-lg border border-sky-700 px-2.5 py-1 text-xs text-sky-700 disabled:opacity-50"
+                >
+                  <ButtonLabel busy={busyId === `import-${type.id}`}>นำเข้าจากอัตราทางการ</ButtonLabel>
+                </button>
+                <button
+                  type="button"
+                  disabled={busyId === `new-${type.id}`}
+                  onClick={() => handleAddLine(type.id)}
+                  className="rounded-lg border border-stone-300 px-2.5 py-1 text-xs text-stone-700 disabled:opacity-50"
+                >
+                  <ButtonLabel busy={busyId === `new-${type.id}`}>+ เพิ่มระดับ</ButtonLabel>
+                </button>
+              </div>
             </div>
             {typeLines.length === 0 ? (
               <p className="mt-2 text-xs text-stone-400">ยังไม่มีรายการ</p>
@@ -628,6 +673,193 @@ function ExpensePanel({
         <span className="font-display text-lg font-bold text-stone-900">{formatBaht(grandTotal)}</span>
         <span className="text-sm text-stone-700"> บาท</span>
       </div>
+    </div>
+  );
+}
+
+/* ---------- อัตราทางการ (สพฐ.) — master data อ้างอิง ---------- */
+
+function OfficialRatesPanel({
+  onError,
+  onDone,
+}: {
+  onError: (e: string | null) => void;
+  onDone: (m: string) => void;
+}) {
+  const [types, setTypes] = useState<PlanRevenueType[]>([]);
+  const [rates, setRates] = useState<PlanOfficialRate[]>([]);
+  const [year, setYear] = useState(CURRENT_BE_YEAR);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  function reload() {
+    setLoading(true);
+    Promise.all([fetchPlanRevenueTypes(), fetchPlanOfficialRates(year)])
+      .then(([t, r]) => {
+        setTypes(t);
+        setRates(r);
+      })
+      .catch((e) => onError(humanizeError(e)))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(reload, [year]);
+
+  async function handleAdd(revenueTypeId: string) {
+    setBusyId(`new-${revenueTypeId}`);
+    onError(null);
+    try {
+      const nextSort = (Math.max(0, ...rates.filter((r) => r.revenue_type_id === revenueTypeId).map((r) => r.sort_order)) || 0) + 10;
+      await createPlanOfficialRate({
+        year,
+        revenue_type_id: revenueTypeId,
+        level_label: "ระดับใหม่",
+        rate_per_student: 0,
+        note: "",
+        sort_order: nextSort,
+      });
+      reload();
+    } catch (e) {
+      onError(humanizeError(e));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleUpdate(id: string, patch: Partial<Pick<PlanOfficialRate, "level_label" | "rate_per_student" | "note">>) {
+    setBusyId(id);
+    onError(null);
+    try {
+      const updated = await updatePlanOfficialRate(id, patch);
+      setRates((prev) => prev.map((r) => (r.id === id ? updated : r)));
+    } catch (e) {
+      onError(humanizeError(e));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("ลบแถวนี้?")) return;
+    setBusyId(id);
+    onError(null);
+    try {
+      await deletePlanOfficialRate(id);
+      setRates((prev) => prev.filter((r) => r.id !== id));
+      onDone("ลบแล้ว");
+    } catch (e) {
+      onError(humanizeError(e));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
+        ตารางอ้างอิงอัตราเงินอุดหนุนรายหัวตามประกาศ สพฐ. — แยกจากตัวเลขจริงที่กรอกในแท็บ
+        &ldquo;ประมาณการรายรับ&rdquo; ใช้เป็นค่าเริ่มต้นตอนขึ้นปีงบประมาณใหม่ผ่านปุ่ม
+        &ldquo;นำเข้าจากอัตราทางการ&rdquo; เท่านั้น แก้ที่นี่ไม่กระทบตัวเลขที่กรอกไปแล้ว
+      </div>
+
+      <label className="flex items-center gap-2 text-sm text-stone-700">
+        ปีงบประมาณของอัตรา (พ.ศ.)
+        <input
+          value={year}
+          inputMode="numeric"
+          onChange={(e) => setYear(Number(e.target.value) || year)}
+          className={`${inputClass} w-28 py-1.5 text-sm`}
+        />
+      </label>
+
+      {loading ? (
+        <p className="text-sm text-stone-500">กำลังโหลด…</p>
+      ) : (
+        types.map((type) => {
+          const typeRates = rates.filter((r) => r.revenue_type_id === type.id).sort((a, b) => a.sort_order - b.sort_order);
+          return (
+            <div key={type.id} className="rounded-xl border border-stone-200 bg-white p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-display text-sm font-semibold text-stone-800">{type.name}</p>
+                <button
+                  type="button"
+                  disabled={busyId === `new-${type.id}`}
+                  onClick={() => handleAdd(type.id)}
+                  className="shrink-0 rounded-lg border border-stone-300 px-2.5 py-1 text-xs text-stone-700 disabled:opacity-50"
+                >
+                  <ButtonLabel busy={busyId === `new-${type.id}`}>+ เพิ่มระดับ</ButtonLabel>
+                </button>
+              </div>
+              {typeRates.length === 0 ? (
+                <p className="mt-2 text-xs text-stone-400">ยังไม่มีอัตราปีนี้</p>
+              ) : (
+                <div className="mt-2 overflow-x-auto">
+                  <table className="w-full min-w-[480px] text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-stone-500">
+                        <th className="py-1 pr-2 font-medium">ระดับชั้น</th>
+                        <th className="py-1 pr-2 font-medium">บาท/คน/ปี</th>
+                        <th className="py-1 pr-2 font-medium">หมายเหตุ</th>
+                        <th className="py-1"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {typeRates.map((rate) => (
+                        <tr key={rate.id} className="border-t border-stone-100">
+                          <td className="py-1.5 pr-2">
+                            <input
+                              defaultValue={rate.level_label}
+                              disabled={busyId === rate.id}
+                              onBlur={(e) =>
+                                e.target.value.trim() !== rate.level_label &&
+                                handleUpdate(rate.id, { level_label: e.target.value.trim() })
+                              }
+                              className={`${inputClass} py-1 text-sm`}
+                            />
+                          </td>
+                          <td className="py-1.5 pr-2">
+                            <input
+                              defaultValue={rate.rate_per_student}
+                              disabled={busyId === rate.id}
+                              inputMode="decimal"
+                              onBlur={(e) => {
+                                const n = Number(e.target.value);
+                                if (Number.isFinite(n) && n !== rate.rate_per_student) handleUpdate(rate.id, { rate_per_student: n });
+                              }}
+                              className={`${inputClass} w-28 py-1 text-sm`}
+                            />
+                          </td>
+                          <td className="py-1.5 pr-2">
+                            <input
+                              defaultValue={rate.note}
+                              disabled={busyId === rate.id}
+                              placeholder="เช่น (สถานประกอบการ)"
+                              onBlur={(e) =>
+                                e.target.value.trim() !== rate.note && handleUpdate(rate.id, { note: e.target.value.trim() })
+                              }
+                              className={`${inputClass} py-1 text-sm`}
+                            />
+                          </td>
+                          <td className="py-1.5 text-right">
+                            <button
+                              type="button"
+                              disabled={busyId === rate.id}
+                              onClick={() => handleDelete(rate.id)}
+                              className="text-xs text-stone-400 hover:text-rose-600 disabled:opacity-50"
+                            >
+                              ลบ
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
     </div>
   );
 }
