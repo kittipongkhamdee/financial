@@ -65,6 +65,10 @@ input[type="number"] {
   .register-page:last-child {
     break-after: auto;
   }
+  /* ป้ายครุภัณฑ์แบบ QR (/items/labels) — กันป้ายถูกตัดขาดกลางแผ่นตอนขึ้นหน้าใหม่ */
+  .label-card {
+    break-inside: avoid;
+  }
   .no-print {
     display: none !important;
   }

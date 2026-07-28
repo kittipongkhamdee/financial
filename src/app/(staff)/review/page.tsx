@@ -185,12 +185,20 @@ export default function ReviewPage() {
           <h1 className="font-display text-xl font-bold text-stone-900">ตรวจสอบครุภัณฑ์</h1>
           <p className="text-sm text-stone-600">{masters?.round ? masters.round.name : ""} · รายการทั้งหมดในรอบนี้</p>
         </div>
-        <Link
-          href="/items/print"
-          className="shrink-0 rounded-xl border border-sky-700 px-3 py-2 text-sm font-semibold text-sky-700"
-        >
-          พิมพ์ทะเบียนคุมทรัพย์สิน
-        </Link>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Link
+            href="/items/labels"
+            className="rounded-xl border border-sky-700 px-3 py-2 text-sm font-semibold text-sky-700"
+          >
+            พิมพ์ป้าย QR
+          </Link>
+          <Link
+            href="/items/print"
+            className="rounded-xl border border-sky-700 px-3 py-2 text-sm font-semibold text-sky-700"
+          >
+            พิมพ์ทะเบียนคุมทรัพย์สิน
+          </Link>
+        </div>
       </div>
 
       {error ? (
