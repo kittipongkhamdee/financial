@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PhotoCapture } from "@/components/PhotoCapture";
+import { QrScanButton } from "@/components/QrScanButton";
 import {
   Alert,
   ButtonLabel,
@@ -510,9 +511,21 @@ export default function SurveyPage() {
                       onBlur={(e) => checkDuplicate(i, e.target.value)}
                       placeholder="7440-001-0001/2565"
                     />
+                    <QrScanButton
+                      label="สแกน"
+                      disabled={draft.untagged}
+                      className="shrink-0 rounded-lg border border-sky-700 px-3 py-2.5 text-sm font-medium text-sky-700 disabled:opacity-50"
+                      onScan={(text) => {
+                        updateAssetCode(i, text);
+                        checkDuplicate(i, text);
+                      }}
+                    />
                   </div>
                 ))}
               </div>
+              <p className="mt-1.5 text-xs text-stone-500">
+                ถ้าครุภัณฑ์มีป้าย QR ติดอยู่แล้ว (จากรอบสำรวจก่อนหน้า) แตะ &ldquo;สแกน&rdquo; แล้วถ่ายรูป QR แทนการพิมพ์เอง
+              </p>
             </Field>
 
             <label className="flex items-center gap-2 text-sm text-stone-700">
