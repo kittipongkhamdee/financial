@@ -76,6 +76,14 @@ export default async function HomePage() {
           />
           {isStaff ? (
             <ModeCard
+              href="/dashboard"
+              badge="สำหรับเจ้าหน้าที่พัสดุ"
+              title="แดชบอร์ด"
+              body="ความคืบหน้ารายอาคาร/ห้อง และมูลค่าสินทรัพย์รวมตามหมวดหมู่"
+            />
+          ) : null}
+          {isStaff ? (
+            <ModeCard
               href="/review"
               badge="สำหรับเจ้าหน้าที่พัสดุ"
               title="ตรวจสอบครุภัณฑ์"

@@ -7,6 +7,7 @@ import { Logo } from "@/components/ui";
 import { useProfile, useSchoolSettings } from "@/lib/hooks";
 
 const NAV = [
+  { href: "/dashboard", label: "แดชบอร์ด", icon: ChartIcon, roles: ["supply", "admin"] as const },
   { href: "/review", label: "ตรวจสอบครุภัณฑ์", icon: ClipboardIcon, roles: ["supply", "admin"] as const },
   { href: "/admin", label: "ตั้งค่าระบบ", icon: GearIcon, roles: ["admin"] as const },
 ];
@@ -118,6 +119,14 @@ function HomeIcon() {
   return (
     <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M3 11l9-8 9 8M5 10v10h14V10" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ChartIcon() {
+  return (
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 20V10M12 20V4M20 20v-7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
