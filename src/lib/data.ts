@@ -277,7 +277,8 @@ export type MasterTable =
   | "asset_buildings"
   | "asset_categories"
   | "asset_budget_sources"
-  | "asset_units";
+  | "asset_units"
+  | "plan_requesters";
 
 /** เห็นทุกแถวรวมที่ปิดใช้งานแล้ว — ต่างจาก fetchMasters ที่กรองเฉพาะ is_active สำหรับฟอร์มครู */
 export async function fetchAllMasterRows(table: MasterTable): Promise<(MasterRow | CategoryRow)[]> {

@@ -38,6 +38,7 @@ const TABS = [
   { key: "asset_buildings", label: "อาคาร" },
   { key: "asset_budget_sources", label: "แหล่งงบประมาณ" },
   { key: "asset_units", label: "หน่วยนับ" },
+  { key: "plan_requesters", label: "รายชื่อผู้ขอเบิกจ่าย" },
   { key: "users", label: "ผู้ใช้งาน" },
 ] as const;
 

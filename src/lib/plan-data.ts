@@ -440,3 +440,15 @@ export async function rejectDisbursementRequest(id: string, reason: string): Pro
     .eq("id", id);
   if (error) throw error;
 }
+
+/** รายชื่อผู้ขอ (เฉพาะที่เปิดใช้งาน) — ให้หน้า /plan/requests ใช้เป็นตัวเลือกในดรอปดาวน์ */
+export async function fetchActivePlanRequesters(): Promise<{ id: string; name: string }[]> {
+  const supabase = supabaseBrowser();
+  const { data, error } = await supabase
+    .from("plan_requesters")
+    .select("id, name")
+    .eq("is_active", true)
+    .order("sort_order");
+  if (error) throw error;
+  return (data as { id: string; name: string }[]) ?? [];
+}

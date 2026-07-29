@@ -7,6 +7,7 @@ import { humanizeError } from "@/lib/data";
 import {
   createDisbursementRequest,
   deleteDisbursementRequest,
+  fetchActivePlanRequesters,
   fetchApprovedDisbursementTotals,
   fetchDisbursementRequests,
   fetchPlanAdminGroups,
@@ -40,6 +41,7 @@ export default function DisbursementRequestsPage() {
   const [projects, setProjects] = useState<PlanProjectWithActivities[]>([]);
   const [requests, setRequests] = useState<PlanDisbursementRequestWithContext[]>([]);
   const [approvedTotals, setApprovedTotals] = useState<Map<string, number>>(new Map());
+  const [requesters, setRequesters] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -58,6 +60,9 @@ export default function DisbursementRequestsPage() {
         setYears(rows);
         setYearId((rows.find((r) => r.is_open) ?? rows[0])?.id ?? null);
       })
+      .catch((e) => setError(humanizeError(e)));
+    fetchActivePlanRequesters()
+      .then(setRequesters)
       .catch((e) => setError(humanizeError(e)));
   }, []);
 
@@ -212,12 +217,17 @@ export default function DisbursementRequestsPage() {
 
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-stone-700">ชื่อผู้ขออนุมัติ (ผู้รับผิดชอบโครงการ/กิจกรรม)</span>
-            <input
-              value={requesterName}
-              onChange={(e) => setRequesterName(e.target.value)}
-              placeholder="ชื่อ-นามสกุล"
-              className={inputClass}
-            />
+            <select value={requesterName} onChange={(e) => setRequesterName(e.target.value)} className={inputClass}>
+              <option value="">— เลือกชื่อผู้ขอ —</option>
+              {requesters.map((r) => (
+                <option key={r.id} value={r.name}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+            {requesters.length === 0 ? (
+              <p className="mt-1 text-xs text-stone-500">ยังไม่มีรายชื่อให้เลือก — แอดมินเพิ่มได้ที่หน้าตั้งค่าระบบ</p>
+            ) : null}
           </label>
 
           <label className="block">
