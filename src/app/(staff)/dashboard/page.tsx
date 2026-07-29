@@ -8,6 +8,12 @@ import { fetchReviewItems, humanizeError } from "@/lib/data";
 import { formatBaht, formatCount } from "@/lib/format";
 import { useMasters, useProfile } from "@/lib/hooks";
 import type { AssetItem, AssetItemStatus, CategoryRow } from "@/lib/types";
+import {
+  fetchApprovedDisbursementTotals,
+  fetchOpenPlanYear,
+  fetchPlanProjectsWithActivities,
+} from "@/lib/plan-data";
+import type { PlanBudgetYear, PlanProjectWithActivities } from "@/lib/plan-types";
 
 /** แดชบอร์ดสรุปภาพรวม — ความคืบหน้ารายอาคาร + มูลค่าสินทรัพย์รวมตามหมวดหมู่ */
 export default function DashboardPage() {
@@ -17,6 +23,12 @@ export default function DashboardPage() {
   const [items, setItems] = useState<AssetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [planYear, setPlanYear] = useState<PlanBudgetYear | null>(null);
+  const [planProjects, setPlanProjects] = useState<PlanProjectWithActivities[]>([]);
+  const [planSpent, setPlanSpent] = useState<Map<string, number>>(new Map());
+  const [planLoading, setPlanLoading] = useState(true);
+  const [planError, setPlanError] = useState<string | null>(null);
 
   const isStaff = profile ? profile.role === "supply" || profile.role === "admin" : null;
 
@@ -28,6 +40,45 @@ export default function DashboardPage() {
       .catch((e) => setError(humanizeError(e)))
       .finally(() => setLoading(false));
   }, [masters, isStaff]);
+
+  useEffect(() => {
+    if (isStaff !== true) return;
+    setPlanLoading(true);
+    fetchOpenPlanYear()
+      .then(async (year) => {
+        setPlanYear(year);
+        if (!year) {
+          setPlanProjects([]);
+          setPlanSpent(new Map());
+          return;
+        }
+        const projects = await fetchPlanProjectsWithActivities(year.id);
+        setPlanProjects(projects);
+        const activityIds = projects.flatMap((p) => p.activities.map((a) => a.id));
+        setPlanSpent(await fetchApprovedDisbursementTotals(activityIds));
+      })
+      .catch((e) => setPlanError(humanizeError(e)))
+      .finally(() => setPlanLoading(false));
+  }, [isStaff]);
+
+  const planSummary = useMemo(() => {
+    let totalBudget = 0;
+    let totalSpent = 0;
+    let inProgress = 0;
+    for (const project of planProjects) {
+      const projectBudget = project.activities.reduce((sum, a) => sum + a.budget, 0);
+      const projectSpent = project.activities.reduce((sum, a) => sum + (planSpent.get(a.id) ?? 0), 0);
+      totalBudget += projectBudget;
+      totalSpent += projectSpent;
+      if (projectSpent > 0) inProgress += 1;
+    }
+    return {
+      projectCount: planProjects.length,
+      inProgress,
+      totalBudget,
+      remaining: totalBudget - totalSpent,
+    };
+  }, [planProjects, planSpent]);
 
   const asOfYearBE = new Date().getFullYear() + 543;
 
@@ -137,6 +188,30 @@ export default function DashboardPage() {
           <Alert tone="error">{error}</Alert>
         </div>
       ) : null}
+
+      <section className="mt-6">
+        <h2 className="font-display text-sm font-semibold text-stone-800">
+          งานแผนงาน {planYear ? `· ${planYear.name}` : ""}
+        </h2>
+        {planError ? (
+          <div className="mt-2">
+            <Alert tone="error">{planError}</Alert>
+          </div>
+        ) : planLoading ? (
+          <p className="mt-2 text-sm text-stone-500">กำลังโหลด…</p>
+        ) : !planYear ? (
+          <p className="mt-2 rounded-xl border border-stone-200 bg-white p-4 text-sm text-stone-600">
+            ยังไม่มีปีงบประมาณที่เปิดอยู่
+          </p>
+        ) : (
+          <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat label="จำนวนโครงการ" value={formatCount(planSummary.projectCount)} unit="โครงการ" />
+            <Stat label="ดำเนินการแล้ว" value={formatCount(planSummary.inProgress)} unit="โครงการ" />
+            <Stat label="งบประมาณทั้งหมด" value={formatBaht(planSummary.totalBudget)} unit="บาท" />
+            <Stat label="คงเหลือ" value={formatBaht(planSummary.remaining)} unit="บาท" />
+          </div>
+        )}
+      </section>
 
       {loading ? (
         <p className="mt-6 text-sm text-stone-500">กำลังโหลด…</p>
