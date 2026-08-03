@@ -17,6 +17,7 @@ import {
   humanizeError,
   rejectItem,
   removePhoto,
+  unapproveItem,
   updateItemAsStaff,
 } from "@/lib/data";
 import { formatBaht } from "@/lib/format";
@@ -78,6 +79,19 @@ export default function ReviewPage() {
       setError(humanizeError(e));
     } finally {
       ids.forEach((id) => setBusy(id, false));
+    }
+  }
+
+  async function handleUnapprove(id: string) {
+    setBusy(id, true);
+    try {
+      await unapproveItem(id);
+      setItems((prev) => prev.map((i) => (i.id === id ? { ...i, status: "submitted" } : i)));
+      show("ยกเลิกการอนุมัติแล้ว — กลับไปสถานะรอตรวจสอบ");
+    } catch (e) {
+      setError(humanizeError(e));
+    } finally {
+      setBusy(id, false);
     }
   }
 
@@ -357,6 +371,16 @@ export default function ReviewPage() {
                               ตีกลับ
                             </button>
                           </>
+                        ) : null}
+                        {tab === "approved" ? (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => handleUnapprove(item.id)}
+                            className="rounded-lg border border-amber-400 px-3 py-1.5 text-sm font-medium text-amber-700 disabled:opacity-50"
+                          >
+                            <ButtonLabel busy={busy}>ยกเลิกการอนุมัติ</ButtonLabel>
+                          </button>
                         ) : null}
                         <button
                           type="button"

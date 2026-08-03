@@ -110,8 +110,8 @@ export async function fetchRegisterItems(roundId: string): Promise<AssetItem[]> 
 }
 
 /**
- * คิวตรวจสอบของงานพัสดุ — ต้อง role supply/admin เท่านั้นถึงจะเห็นของทุกคน (RLS asset_is_staff())
- * ครูทั่วไปที่หลงเข้ามาจะเห็นแค่ของตัวเอง ไม่ใช่ error แต่หน้าจะกันไว้อีกชั้นด้วย role check
+ * รายการทั้งหมดในรอบ — RLS เปิด select ให้ทุกคนแล้ว (ทั้งหน้าตรวจสอบของงานพัสดุที่ต้อง
+ * ล็อกอินเป็น supply/admin ผ่าน role check ของหน้าเอง และหน้าเปิดสาธารณะผ่าน fetchPublicItems)
  */
 export async function fetchReviewItems(roundId: string): Promise<AssetItem[]> {
   const supabase = supabaseBrowser();
@@ -140,6 +140,30 @@ export async function updateItemAsStaff(
 
   if (error) throw error;
   return data as AssetItem;
+}
+
+/**
+ * แก้ไขได้จากหน้าเปิดสาธารณะ (ไม่ต้องล็อกอิน) — asset_items_public_update policy บังคับ
+ * ให้ทำได้เฉพาะรายการที่ยังไม่อนุมัติ (submitted/rejected) เท่านั้น อนุมัติแล้วต้อง
+ * "ยกเลิกการอนุมัติ" ที่ /review ก่อนถึงจะแก้ไขต่อได้
+ */
+export const updatePublicItem = updateItemAsStaff;
+
+/** เหมือน fetchReviewItems แต่ RLS เปิด select ให้ทุกคนแล้ว — ใช้เรียกจากหน้าเปิดสาธารณะได้ */
+export const fetchPublicItems = fetchReviewItems;
+
+/** ยกเลิกการอนุมัติ — ย้อนกลับไปสถานะ "รอตรวจสอบ" ให้แก้ไขได้อีกครั้งจากหน้าเปิดสาธารณะ */
+export async function unapproveItem(id: string): Promise<void> {
+  const supabase = supabaseBrowser();
+  const user = await getSessionUser();
+  if (!user) throw new Error("เซสชันหมดอายุ — กรุณาเข้าสู่ระบบอีกครั้ง");
+
+  const { error } = await supabase
+    .from("asset_items")
+    .update({ status: "submitted", reviewed_by: user.id, reviewed_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) throw error;
 }
 
 export async function approveItems(ids: string[]): Promise<void> {

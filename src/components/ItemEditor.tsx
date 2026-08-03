@@ -24,8 +24,9 @@ import {
 } from "@/lib/types";
 
 /**
- * ฟอร์มแก้ไขรายการครุภัณฑ์ — ใช้ร่วมกันทั้งหน้า "รายการของฉัน" (ครูแก้ของตัวเอง)
- * และหน้า "ตรวจสอบครุภัณฑ์" (พัสดุ/แอดมินแก้ของใครก็ได้) ต่างกันแค่ฟังก์ชัน updateFn ที่ส่งเข้ามา
+ * ฟอร์มแก้ไขรายการครุภัณฑ์ — ใช้ร่วมกันทั้งหน้า "ตรวจสอบครุภัณฑ์" (พัสดุ/แอดมินแก้ของใครก็ได้
+ * ทุกสถานะ) และหน้า "/survey/list" ที่เปิดสาธารณะ (ใครก็แก้ได้ แต่ RLS จำกัดเฉพาะรายการที่
+ * ยังไม่อนุมัติ) ต่างกันแค่ฟังก์ชัน updateFn ที่ส่งเข้ามา
  *
  * ช่องข้อมูลฝั่งจัดซื้อ (ผู้ขาย/ที่อยู่/โทรศัพท์/วิธีการได้มา/รุ่นแบบ/ลักษณะคุณสมบัติ)
  * แสดงให้ทุกคนเห็นเหมือนกัน — ครูกรอกได้ถ้ารู้ แต่ไม่บังคับ เว้นว่างไว้ให้พัสดุ/แอดมินเติมทีหลังก็ได้
@@ -36,6 +37,7 @@ export function ItemEditor({
   updateFn,
   onCancel,
   onSaved,
+  deleteOldPhotoOnReplace = true,
 }: {
   item: AssetItem;
   masters: Masters;
@@ -45,6 +47,8 @@ export function ItemEditor({
   ) => Promise<AssetItem>;
   onCancel: () => void;
   onSaved: (item: AssetItem) => void;
+  /** false สำหรับหน้าเปิดสาธารณะที่ไม่มีสิทธิ์ลบไฟล์ใน storage — ปล่อยรูปเก่าค้างไว้เฉย ๆ แทน */
+  deleteOldPhotoOnReplace?: boolean;
 }) {
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState(item.quantity);
@@ -73,7 +77,7 @@ export function ItemEditor({
       let photoPath = item.photo_path;
       if (newPhoto) {
         photoPath = await uploadPhoto(newPhoto);
-        if (item.photo_path) await removePhoto(item.photo_path);
+        if (deleteOldPhotoOnReplace && item.photo_path) await removePhoto(item.photo_path);
       }
 
       const updated = await updateFn(item.id, {
