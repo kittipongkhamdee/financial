@@ -16,8 +16,9 @@ import {
   useToast,
 } from "@/components/ui";
 import { CONDITIONS, CURRENT_BE_YEAR, FLOORS } from "@/lib/constants";
-import { findByAssetCode, humanizeError, insertItem, uploadPhoto } from "@/lib/data";
+import { findByAssetCode, humanizeError, insertItem, uploadPhotoBlob } from "@/lib/data";
 import { describeLocation, parseNumber, shiftAssetCodeSerial } from "@/lib/format";
+import { compressImage } from "@/lib/image";
 import { useLastRoom, useMasters } from "@/lib/hooks";
 import { ACQUISITION_METHODS, type AcquisitionMethod, type AssetCondition } from "@/lib/types";
 
@@ -185,51 +186,59 @@ export default function SurveyPage() {
 
     try {
       // ชื่อเดียวกันได้หลายชิ้น แต่ละชิ้นมีหมายเลขครุภัณฑ์ของตัวเอง → บันทึกแยกแถวตามจำนวนช่องที่กรอก
-      // อัปโหลดรูปแยกชุดต่อชิ้น (ไม่ใช้ path เดียวกัน) เผื่อภายหลังลบชิ้นใดชิ้นหนึ่งจะไม่ลากรูปของชิ้นอื่นหายไปด้วย
+      // บีบอัดรูปแค่ครั้งเดียว (ไม่ใช่ทุกชิ้น) แล้วอัปโหลด+บันทึกทุกชิ้นพร้อมกันแทนการรอทีละชิ้น
+      // — เดิมทำทีละชิ้นเรียงกัน ถ้ากรอกจำนวนเยอะ (เช่น 20-30 ชิ้น) จะช้ามากเพราะรอเน็ตแต่ละรอบ
+      // ยังคงอัปโหลดรูปแยก path ต่อชิ้น (ไม่ใช้ path เดียวกันซ้ำ) เผื่อภายหลังลบชิ้นใดชิ้นหนึ่ง
+      // จะไม่ลากรูปของชิ้นอื่นหายไปด้วย
+      const round = masters.round;
+      const condition = draft.condition;
       const codes = draft.untagged ? codeEntries.map(() => "") : codeEntries.map((e) => e.value);
-      const created: SavedPreview[] = [];
       const previewUrl = URL.createObjectURL(photo);
+      const compressed = await compressImage(photo);
 
-      for (const code of codes) {
-        const photoPath = await uploadPhoto(photo);
-        const trimmed = code.trim();
-        await insertItem(
-          masters.round.id,
-          {
-            building: draft.building.trim(),
-            floor: draft.floor.trim() || null,
-            room: draft.room.trim(),
-            category_id: draft.categoryId,
-            name: draft.name.trim(),
-            quantity: 1,
-            unit: draft.unit.trim() || null,
-            asset_code: trimmed || null,
-            untagged: trimmed === "",
-            condition: draft.condition,
-            note: draft.note.trim() || null,
-            acquired_year: parseNumber(draft.acquiredYear),
-            budget_source_id: draft.budgetSourceId,
-            price: parseNumber(draft.price),
-            model: draft.model.trim() || null,
-            spec: draft.spec.trim() || null,
-            acquisition_method: draft.acquisitionMethod || null,
-            vendor_name: draft.vendorName.trim() || null,
-            vendor_address: draft.vendorAddress.trim() || null,
-            vendor_phone: draft.vendorPhone.trim() || null,
-          },
-          photoPath,
-          // ถ่ายรูปครบตั้งแต่ขั้นแรกของฟอร์มนี้แล้ว จึงส่งให้งานพัสดุทันที
-          // ไม่ต้องแวะไปกดตรวจทาน/ส่งอีกรอบที่ "รายการของฉัน"
-          "submitted",
-        );
-        created.push({
-          id: crypto.randomUUID(),
-          name: draft.name.trim(),
-          quantity: 1,
-          unit: draft.unit.trim() || null,
-          photoUrl: previewUrl,
-        });
-      }
+      await Promise.all(
+        codes.map(async (code) => {
+          const photoPath = await uploadPhotoBlob(compressed.blob, compressed.ext, compressed.contentType);
+          const trimmed = code.trim();
+          await insertItem(
+            round.id,
+            {
+              building: draft.building.trim(),
+              floor: draft.floor.trim() || null,
+              room: draft.room.trim(),
+              category_id: draft.categoryId,
+              name: draft.name.trim(),
+              quantity: 1,
+              unit: draft.unit.trim() || null,
+              asset_code: trimmed || null,
+              untagged: trimmed === "",
+              condition,
+              note: draft.note.trim() || null,
+              acquired_year: parseNumber(draft.acquiredYear),
+              budget_source_id: draft.budgetSourceId,
+              price: parseNumber(draft.price),
+              model: draft.model.trim() || null,
+              spec: draft.spec.trim() || null,
+              acquisition_method: draft.acquisitionMethod || null,
+              vendor_name: draft.vendorName.trim() || null,
+              vendor_address: draft.vendorAddress.trim() || null,
+              vendor_phone: draft.vendorPhone.trim() || null,
+            },
+            photoPath,
+            // ถ่ายรูปครบตั้งแต่ขั้นแรกของฟอร์มนี้แล้ว จึงส่งให้งานพัสดุทันที
+            // ไม่ต้องแวะไปกดตรวจทาน/ส่งอีกรอบที่ "รายการของฉัน"
+            "submitted",
+          );
+        }),
+      );
+
+      const created: SavedPreview[] = codes.map(() => ({
+        id: crypto.randomUUID(),
+        name: draft.name.trim(),
+        quantity: 1,
+        unit: draft.unit.trim() || null,
+        photoUrl: previewUrl,
+      }));
 
       remember({
         building: draft.building.trim(),

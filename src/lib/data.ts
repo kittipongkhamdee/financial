@@ -252,8 +252,16 @@ export async function findByAssetCode(
  * บีบอัด/ย่อรูปฝั่งเบราว์เซอร์ก่อนเสมอ — path ไม่แยกตามผู้กรอกแล้ว (ดูรูปของกันและกันได้)
  */
 export async function uploadPhoto(file: File): Promise<string> {
-  const supabase = supabaseBrowser();
   const { blob, ext, contentType } = await compressImage(file);
+  return uploadPhotoBlob(blob, ext, contentType);
+}
+
+/**
+ * อัปโหลด blob ที่บีบอัดไว้แล้ว — แยกจาก uploadPhoto เพื่อให้ตอนบันทึกครุภัณฑ์หลายชิ้น
+ * จากรูปเดียวกัน (จำนวน > 1) บีบอัดแค่ครั้งเดียวแล้วอัปโหลดซ้ำได้เลย ไม่ต้องบีบอัดใหม่ทุกชิ้น
+ */
+export async function uploadPhotoBlob(blob: Blob, ext: string, contentType: string): Promise<string> {
+  const supabase = supabaseBrowser();
   const path = `${crypto.randomUUID()}.${ext}`;
 
   const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, blob, {
