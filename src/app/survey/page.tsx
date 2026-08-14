@@ -366,12 +366,7 @@ export default function SurveyPage() {
         {step === 1 ? (
           <>
             <Field label="อาคาร" required group>
-              <ChipGroup
-                options={buildingNames}
-                value={draft.building}
-                onChange={(v) => set("building", v)}
-                allowOther
-              />
+              <ChipGroup options={buildingNames} value={draft.building} onChange={(v) => set("building", v)} />
             </Field>
             <Field label="ชั้น" group>
               <ChipGroup options={[...FLOORS]} value={draft.floor} onChange={(v) => set("floor", v)} />
