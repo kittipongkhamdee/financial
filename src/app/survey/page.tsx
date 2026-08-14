@@ -143,7 +143,7 @@ export default function SurveyPage() {
 
   const stepValid = [
     photo !== null,
-    draft.building.trim() !== "" && draft.room.trim() !== "",
+    draft.building.trim() !== "" && draft.floor.trim() !== "" && draft.room.trim() !== "",
     draft.name.trim() !== "" && draft.quantity > 0,
     draft.condition !== null,
   ][step];
@@ -368,7 +368,7 @@ export default function SurveyPage() {
             <Field label="อาคาร" required group>
               <ChipGroup options={buildingNames} value={draft.building} onChange={(v) => set("building", v)} />
             </Field>
-            <Field label="ชั้น" group>
+            <Field label="ชั้น" required group>
               <ChipGroup options={[...FLOORS]} value={draft.floor} onChange={(v) => set("floor", v)} />
             </Field>
             <Field
