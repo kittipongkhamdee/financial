@@ -43,6 +43,11 @@ export default function PublicItemListPage() {
     return map;
   }, [masters]);
 
+  // สร้างจากอาคารที่มีรายการจริง ไม่ใช้ masters.buildings เฉย ๆ เพราะครูพิมพ์ชื่ออาคารเองได้
+  // (ปุ่ม "+ อื่น ๆ" ตอนกรอกแบบสำรวจ) ถ้าใช้ master list อย่างเดียว รายการที่ชื่ออาคาร
+  // ไม่ตรงกับ master data เป๊ะ ๆ จะไม่มีทางเลือกให้กดเห็นเลย
+  const buildingOptions = useMemo(() => [...new Set(items.map((i) => i.building))].sort(), [items]);
+
   const floorOptions = useMemo(() => {
     if (!building) return [];
     const set = new Set(items.filter((i) => i.building === building).map((i) => i.floor ?? "-"));
@@ -93,6 +98,10 @@ export default function PublicItemListPage() {
 
       {loading ? (
         <p className="mt-6 text-sm text-stone-500">กำลังโหลด…</p>
+      ) : buildingOptions.length === 0 ? (
+        <p className="mt-6 rounded-xl border border-stone-200 bg-white p-4 text-sm text-stone-600">
+          ยังไม่มีรายการที่สำรวจส่งมา
+        </p>
       ) : (
         <>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -106,9 +115,9 @@ export default function PublicItemListPage() {
               className={`${inputClass} max-w-[12rem]`}
             >
               <option value="">— เลือกอาคาร —</option>
-              {(masters?.buildings ?? []).map((b) => (
-                <option key={b.id} value={b.name}>
-                  {b.name}
+              {buildingOptions.map((b) => (
+                <option key={b} value={b}>
+                  {b}
                 </option>
               ))}
             </select>
