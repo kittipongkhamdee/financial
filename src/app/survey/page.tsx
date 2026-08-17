@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PhotoCapture } from "@/components/PhotoCapture";
@@ -98,6 +98,14 @@ export default function SurveyPage() {
   const [duplicates, setDuplicates] = useState<(string | null)[]>([null]);
   const [savedInRoom, setSavedInRoom] = useState<SavedPreview[]>([]);
 
+  // ตอนเช็คซ้ำ (findByAssetCode) ยิง network ค้างอยู่ ถ้าครูแก้/ลบเลขในช่องนั้นไปแล้วก่อน
+  // คำตอบจะกลับมา ต้องรู้ค่าล่าสุดจริง ๆ ตอนคำตอบมาถึง — ใช้ ref แทน state เพราะ closure
+  // ของ async function ที่ค้างรอ await จะเห็นแค่ค่า ณ ตอนเริ่มเรียก ไม่ใช่ค่าปัจจุบัน
+  const codeEntriesRef = useRef(codeEntries);
+  useEffect(() => {
+    codeEntriesRef.current = codeEntries;
+  }, [codeEntries]);
+
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
@@ -164,6 +172,9 @@ export default function SurveyPage() {
     if (!masters?.round) return;
     try {
       const existing = await findByAssetCode(masters.round.id, trimmed);
+      // คำตอบมาช้า — ถ้าค่าปัจจุบันในช่องนี้ไม่ตรงกับที่เพิ่งเช็ค (ครูแก้/ลบไปแล้วระหว่างรอ)
+      // ทิ้งผลนี้ไปเลย ไม่งั้นจะเขียนทับกลายเป็นแจ้งซ้ำผิด ๆ ในช่องที่ตอนนี้ว่าง/เปลี่ยนไปแล้ว
+      if (codeEntriesRef.current[index]?.value.trim() !== trimmed) return;
       setDuplicates((dups) =>
         dups.map((d, i) =>
           i === index ? (existing ? `เลขนี้กรอกไว้แล้ว: ${existing.name} (ห้อง ${existing.room})` : null) : d,
