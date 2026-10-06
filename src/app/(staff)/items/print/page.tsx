@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Alert } from "@/components/ui";
-import { CONDITION_LABEL } from "@/lib/constants";
 import { calculateDepreciation, type DepreciationResult } from "@/lib/depreciation";
 import { downloadCsv, rowsToCsv } from "@/lib/csv";
 import { fetchRegisterItems, humanizeError } from "@/lib/data";
@@ -65,6 +64,12 @@ export default function PrintRegisterPage() {
     return map;
   }, [masters]);
 
+  const conditionNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of masters?.conditions ?? []) map.set(c.id, c.name);
+    return map;
+  }, [masters]);
+
   const asOfYearBE = new Date().getFullYear() + 543;
 
   const rows: Row[] = useMemo(
@@ -119,7 +124,7 @@ export default function PrintRegisterPage() {
       item.quantity,
       item.unit ?? "",
       describeLocation(item.building, item.floor, item.room),
-      CONDITION_LABEL[item.condition],
+      conditionNameById.get(item.condition_id) ?? "",
       item.acquired_year,
       depreciation ? depreciation.cost : item.price,
       category?.useful_life_years ?? null,
@@ -235,7 +240,7 @@ export default function PrintRegisterPage() {
                   <td className="border border-stone-300 px-1.5 py-1">
                     {describeLocation(item.building, item.floor, item.room)}
                   </td>
-                  <td className="border border-stone-300 px-1.5 py-1">{CONDITION_LABEL[item.condition]}</td>
+                  <td className="border border-stone-300 px-1.5 py-1">{conditionNameById.get(item.condition_id) ?? "—"}</td>
                   <td className="border border-stone-300 px-1.5 py-1 text-right">
                     {item.acquired_year ?? "—"}
                   </td>

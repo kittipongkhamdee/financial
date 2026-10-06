@@ -5,10 +5,9 @@ import Link from "next/link";
 import { ItemEditor } from "@/components/ItemEditor";
 import { Alert, ButtonLabel, PhotoThumb, Toast, inputClass, useToast } from "@/components/ui";
 import {
-  CONDITION_BADGE,
-  CONDITION_LABEL,
   STATUS_BADGE,
   STATUS_LABEL,
+  conditionBadgeClass,
 } from "@/lib/constants";
 import {
   approveItems,
@@ -22,7 +21,7 @@ import {
 } from "@/lib/data";
 import { formatBaht } from "@/lib/format";
 import { useMasters, useProfile } from "@/lib/hooks";
-import type { AssetItem, AssetItemStatus } from "@/lib/types";
+import type { AssetConditionRow, AssetItem, AssetItemStatus } from "@/lib/types";
 
 const TABS: { value: AssetItemStatus; label: string }[] = [
   { value: "submitted", label: "รอตรวจสอบ" },
@@ -148,6 +147,12 @@ export default function ReviewPage() {
   const categoryById = useMemo(() => {
     const map = new Map<string, string>();
     for (const c of masters?.categories ?? []) map.set(c.id, c.name);
+    return map;
+  }, [masters]);
+
+  const conditionById = useMemo(() => {
+    const map = new Map<string, AssetConditionRow>();
+    for (const c of masters?.conditions ?? []) map.set(c.id, c);
     return map;
   }, [masters]);
 
@@ -326,8 +331,10 @@ export default function ReviewPage() {
                             )}
                           </p>
                           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                            <span className={`rounded-full px-2 py-0.5 text-xs ${CONDITION_BADGE[item.condition]}`}>
-                              {CONDITION_LABEL[item.condition]}
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs ${conditionBadgeClass(conditionById.get(item.condition_id)?.badge_color ?? null)}`}
+                            >
+                              {conditionById.get(item.condition_id)?.name ?? "—"}
                             </span>
                             <span className={`rounded-full px-2 py-0.5 text-xs ${STATUS_BADGE[item.status]}`}>
                               {STATUS_LABEL[item.status]}

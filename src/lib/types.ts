@@ -1,6 +1,5 @@
 /** ชนิดข้อมูลกลางของเฟส 1 — ตรงกับ supabase/migrations/20260725000000_asset_survey_phase1.sql */
 
-export type AssetCondition = "usable" | "damaged" | "disposal";
 export type AssetItemStatus = "draft" | "submitted" | "approved" | "rejected";
 export type AssetUserRole = "teacher" | "supply" | "admin" | "director";
 
@@ -9,6 +8,14 @@ export type MasterRow = {
   name: string;
   sort_order: number;
   is_active: boolean;
+};
+
+/**
+ * สภาพครุภัณฑ์ — master data ที่แอดมินปรับแต่งได้ (ตาราง asset_conditions)
+ * แทนที่ enum ค่าคงที่เดิม (usable/damaged/disposal) ที่ถูกลบออกจากฐานข้อมูลแล้ว
+ */
+export type AssetConditionRow = MasterRow & {
+  badge_color: string | null;
 };
 
 /** หมวดครุภัณฑ์ — มีอายุการใช้งาน/อัตราค่าเสื่อมราคาตามตาราง สพฐ. ไว้คำนวณค่าเสื่อมราคา */
@@ -63,7 +70,7 @@ export type AssetItem = {
   unit: string | null;
   asset_code: string | null;
   untagged: boolean;
-  condition: AssetCondition;
+  condition_id: string;
   note: string | null;
   acquired_year: number | null;
   budget_source_id: string | null;
@@ -91,7 +98,7 @@ export type AssetItemDraft = {
   unit: string | null;
   asset_code: string | null;
   untagged: boolean;
-  condition: AssetCondition;
+  condition_id: string;
   note: string | null;
   acquired_year: number | null;
   budget_source_id: string | null;
@@ -111,6 +118,7 @@ export type Masters = {
   categories: CategoryRow[];
   budgetSources: MasterRow[];
   units: MasterRow[];
+  conditions: AssetConditionRow[];
 };
 
 /** ตั้งค่าระบบ — ชื่อโรงเรียน/ชื่อระบบ/โลโก้ อ่านได้ทุกคนแม้ยังไม่ล็อกอิน แก้ได้เฉพาะ admin */

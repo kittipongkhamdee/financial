@@ -10,13 +10,12 @@ import {
   QuantityStepper,
   inputClass,
 } from "@/components/ui";
-import { CONDITIONS } from "@/lib/constants";
+import { conditionToneClass } from "@/lib/constants";
 import { humanizeError, removePhoto, uploadPhoto } from "@/lib/data";
 import { parseNumber } from "@/lib/format";
 import {
   ACQUISITION_METHODS,
   type AcquisitionMethod,
-  type AssetCondition,
   type AssetItem,
   type AssetItemDraft,
   type Masters,
@@ -54,7 +53,7 @@ export function ItemEditor({
   const [quantity, setQuantity] = useState(item.quantity);
   const [unit, setUnit] = useState(item.unit ?? "");
   const [assetCode, setAssetCode] = useState(item.asset_code ?? "");
-  const [condition, setCondition] = useState<AssetCondition>(item.condition);
+  const [conditionId, setConditionId] = useState(item.condition_id);
   const [categoryId, setCategoryId] = useState(item.category_id ?? "");
   const [budgetSourceId, setBudgetSourceId] = useState(item.budget_source_id ?? "");
   const [acquiredYear, setAcquiredYear] = useState(item.acquired_year?.toString() ?? "");
@@ -86,7 +85,7 @@ export function ItemEditor({
         unit: unit.trim() || null,
         asset_code: assetCode.trim() || null,
         untagged: assetCode.trim() === "",
-        condition,
+        condition_id: conditionId,
         category_id: categoryId || null,
         budget_source_id: budgetSourceId || null,
         acquired_year: parseNumber(acquiredYear),
@@ -140,17 +139,17 @@ export function ItemEditor({
 
       <Field label="สภาพการใช้งาน" required group>
         <div className="flex flex-wrap gap-2">
-          {CONDITIONS.map((c) => (
+          {masters.conditions.map((c) => (
             <button
-              key={c.value}
+              key={c.id}
               type="button"
-              onClick={() => setCondition(c.value)}
+              onClick={() => setConditionId(c.id)}
               className={
                 "rounded-full border px-3.5 py-2 text-sm " +
-                (condition === c.value ? c.tone : "border-stone-300 bg-white text-stone-700")
+                (conditionId === c.id ? conditionToneClass(c.badge_color) : "border-stone-300 bg-white text-stone-700")
               }
             >
-              {c.label}
+              {c.name}
             </button>
           ))}
         </div>

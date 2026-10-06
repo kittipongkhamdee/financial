@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Alert } from "@/components/ui";
-import { CONDITION_LABEL } from "@/lib/constants";
 import { calculateDepreciation, type DepreciationResult } from "@/lib/depreciation";
 import { fetchRegisterItems, humanizeError } from "@/lib/data";
 import { describeLocation, formatBaht } from "@/lib/format";
@@ -67,6 +66,12 @@ export default function RegisterCardsPage() {
   const budgetSourceById = useMemo(() => {
     const map = new Map<string, string>();
     for (const b of masters?.budgetSources ?? []) map.set(b.id, b.name);
+    return map;
+  }, [masters]);
+
+  const conditionNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of masters?.conditions ?? []) map.set(c.id, c.name);
     return map;
   }, [masters]);
 
@@ -214,7 +219,7 @@ export default function RegisterCardsPage() {
                       {depreciation ? formatBaht(depreciation.netBookValue) : "—"}
                     </td>
                     <td className="border border-stone-400 px-1 py-1 text-left">
-                      สภาพ: {CONDITION_LABEL[item.condition]}
+                      สภาพ: {conditionNameById.get(item.condition_id) ?? "—"}
                       {item.note ? ` · ${item.note}` : ""}
                     </td>
                   </tr>

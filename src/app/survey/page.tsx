@@ -15,12 +15,12 @@ import {
   inputClass,
   useToast,
 } from "@/components/ui";
-import { CONDITIONS, CURRENT_BE_YEAR, FLOORS } from "@/lib/constants";
+import { CURRENT_BE_YEAR, FLOORS, conditionToneClass } from "@/lib/constants";
 import { findByAssetCode, humanizeError, insertItem, uploadPhotoBlob } from "@/lib/data";
 import { describeLocation, parseNumber, shiftAssetCodeSerial } from "@/lib/format";
 import { compressImage } from "@/lib/image";
 import { useLastRoom, useMasters } from "@/lib/hooks";
-import { ACQUISITION_METHODS, type AcquisitionMethod, type AssetCondition } from "@/lib/types";
+import { ACQUISITION_METHODS, type AcquisitionMethod } from "@/lib/types";
 
 /**
  * รายการที่เพิ่งบันทึกในห้องนี้ — ใช้แสดงตัวอย่างเฉย ๆ ไม่ใช่ AssetItem จริงจาก DB
@@ -40,7 +40,7 @@ type Draft = {
   acquiredYear: string;
   budgetSourceId: string | null;
   price: string;
-  condition: AssetCondition | null;
+  conditionId: string | null;
   note: string;
   model: string;
   spec: string;
@@ -59,7 +59,7 @@ const EMPTY_ITEM = {
   acquiredYear: "",
   budgetSourceId: null,
   price: "",
-  condition: null,
+  conditionId: null,
   note: "",
   model: "",
   spec: "",
@@ -153,7 +153,7 @@ export default function SurveyPage() {
     photo !== null,
     draft.building.trim() !== "" && draft.floor.trim() !== "" && draft.room.trim() !== "",
     draft.name.trim() !== "" && draft.quantity > 0,
-    draft.condition !== null,
+    draft.conditionId !== null,
   ][step];
 
   async function checkDuplicate(index: number, code: string) {
@@ -190,7 +190,7 @@ export default function SurveyPage() {
       setError("ยังไม่มีรอบสำรวจที่เปิดอยู่");
       return;
     }
-    if (!photo || !draft.condition) return;
+    if (!photo || !draft.conditionId) return;
 
     setBusy(true);
     setError(null);
@@ -202,7 +202,7 @@ export default function SurveyPage() {
       // ยังคงอัปโหลดรูปแยก path ต่อชิ้น (ไม่ใช้ path เดียวกันซ้ำ) เผื่อภายหลังลบชิ้นใดชิ้นหนึ่ง
       // จะไม่ลากรูปของชิ้นอื่นหายไปด้วย
       const round = masters.round;
-      const condition = draft.condition;
+      const conditionId = draft.conditionId;
       const codes = draft.untagged ? codeEntries.map(() => "") : codeEntries.map((e) => e.value);
       const previewUrl = URL.createObjectURL(photo);
       const compressed = await compressImage(photo);
@@ -223,7 +223,7 @@ export default function SurveyPage() {
               unit: draft.unit.trim() || null,
               asset_code: trimmed || null,
               untagged: trimmed === "",
-              condition,
+              condition_id: conditionId,
               note: draft.note.trim() || null,
               acquired_year: parseNumber(draft.acquiredYear),
               budget_source_id: draft.budgetSourceId,
@@ -616,21 +616,18 @@ export default function SurveyPage() {
         {step === 3 ? (
           <>
             <div className="space-y-2">
-              {CONDITIONS.map((c) => (
+              {(masters.conditions ?? []).map((c) => (
                 <button
-                  key={c.value}
+                  key={c.id}
                   type="button"
-                  onClick={() => set("condition", c.value)}
+                  onClick={() => set("conditionId", c.id)}
                   className={
-                    "flex w-full items-start gap-3 rounded-xl border-2 px-4 py-3 text-left transition " +
-                    (draft.condition === c.value ? c.tone : "border-stone-200 bg-white")
+                    "flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition " +
+                    (draft.conditionId === c.id ? conditionToneClass(c.badge_color) : "border-stone-200 bg-white")
                   }
                 >
-                  <span className="flex-1">
-                    <span className="block font-display text-base font-semibold">{c.label}</span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-stone-600">{c.hint}</span>
-                  </span>
-                  {draft.condition === c.value ? <span aria-hidden>✓</span> : null}
+                  <span className="flex-1 block font-display text-base font-semibold">{c.name}</span>
+                  {draft.conditionId === c.id ? <span aria-hidden>✓</span> : null}
                 </button>
               ))}
             </div>

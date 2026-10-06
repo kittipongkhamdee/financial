@@ -65,7 +65,7 @@ export async function fetchMasters(): Promise<Masters> {
   const master = (table: string) =>
     supabase.from(table).select("id, name, sort_order, is_active").eq("is_active", true).order("sort_order");
 
-  const [round, buildings, categories, budgetSources, units] = await Promise.all([
+  const [round, buildings, categories, budgetSources, units, conditions] = await Promise.all([
     supabase
       .from("asset_survey_rounds")
       .select("id, year, name, is_open")
@@ -81,6 +81,11 @@ export async function fetchMasters(): Promise<Masters> {
       .order("sort_order"),
     master("asset_budget_sources"),
     master("asset_units"),
+    supabase
+      .from("asset_conditions")
+      .select("id, name, sort_order, is_active, badge_color")
+      .eq("is_active", true)
+      .order("sort_order"),
   ]);
 
   return {
@@ -89,6 +94,7 @@ export async function fetchMasters(): Promise<Masters> {
     categories: categories.data ?? [],
     budgetSources: budgetSources.data ?? [],
     units: units.data ?? [],
+    conditions: conditions.data ?? [],
   };
 }
 
