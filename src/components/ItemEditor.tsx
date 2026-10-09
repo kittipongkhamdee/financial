@@ -5,12 +5,13 @@ import { PhotoCapture } from "@/components/PhotoCapture";
 import {
   Alert,
   ButtonLabel,
+  ChipGroup,
   Field,
   PhotoThumb,
   QuantityStepper,
   inputClass,
 } from "@/components/ui";
-import { conditionToneClass } from "@/lib/constants";
+import { FLOORS, conditionToneClass } from "@/lib/constants";
 import { humanizeError, removePhoto, uploadPhoto } from "@/lib/data";
 import { parseNumber } from "@/lib/format";
 import {
@@ -37,6 +38,7 @@ export function ItemEditor({
   onCancel,
   onSaved,
   deleteOldPhotoOnReplace = true,
+  canEditLocation = false,
 }: {
   item: AssetItem;
   masters: Masters;
@@ -48,6 +50,8 @@ export function ItemEditor({
   onSaved: (item: AssetItem) => void;
   /** false สำหรับหน้าเปิดสาธารณะที่ไม่มีสิทธิ์ลบไฟล์ใน storage — ปล่อยรูปเก่าค้างไว้เฉย ๆ แทน */
   deleteOldPhotoOnReplace?: boolean;
+  /** true เฉพาะแอดมิน — ย้ายอาคาร/ชั้น/ห้องได้ (พัสดุและหน้าสาธารณะแก้ตำแหน่งไม่ได้) */
+  canEditLocation?: boolean;
 }) {
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState(item.quantity);
@@ -66,8 +70,13 @@ export function ItemEditor({
   const [vendorAddress, setVendorAddress] = useState(item.vendor_address ?? "");
   const [vendorPhone, setVendorPhone] = useState(item.vendor_phone ?? "");
   const [acquisitionMethod, setAcquisitionMethod] = useState(item.acquisition_method ?? "");
+  const [building, setBuilding] = useState(item.building);
+  const [floor, setFloor] = useState(item.floor ?? "");
+  const [room, setRoom] = useState(item.room);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const locationValid = !canEditLocation || (building.trim() !== "" && floor.trim() !== "" && room.trim() !== "");
 
   async function save() {
     setBusy(true);
@@ -80,6 +89,9 @@ export function ItemEditor({
       }
 
       const updated = await updateFn(item.id, {
+        ...(canEditLocation
+          ? { building: building.trim(), floor: floor.trim() || null, room: room.trim() }
+          : {}),
         name: name.trim(),
         quantity,
         unit: unit.trim() || null,
@@ -109,6 +121,26 @@ export function ItemEditor({
 
   return (
     <div className="space-y-3 rounded-xl border-2 border-sky-300 bg-white p-4">
+      {canEditLocation ? (
+        <div className="space-y-3 rounded-xl border border-dashed border-amber-400 bg-amber-50/50 p-3">
+          <p className="font-display text-xs font-semibold text-amber-800">ย้ายตำแหน่ง (เฉพาะแอดมิน)</p>
+          <Field label="อาคาร" required group>
+            <ChipGroup options={masters.buildings.map((b) => b.name)} value={building} onChange={setBuilding} />
+          </Field>
+          <Field label="ชั้น" required group>
+            <ChipGroup options={[...FLOORS]} value={floor} onChange={setFloor} />
+          </Field>
+          <Field label="ห้อง/สถานที่" required>
+            <input
+              className={inputClass}
+              value={room}
+              onChange={(e) => setRoom(e.target.value)}
+              placeholder="เช่น 324 หรือ ห้องสมุด"
+            />
+          </Field>
+        </div>
+      ) : null}
+
       <Field label="ชื่อครุภัณฑ์" required>
         <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
@@ -238,7 +270,7 @@ export function ItemEditor({
       <div className="flex gap-2 pt-1">
         <button
           type="button"
-          disabled={busy || name.trim() === ""}
+          disabled={busy || name.trim() === "" || !locationValid}
           onClick={save}
           className="rounded-xl bg-sky-700 px-4 py-2.5 font-semibold text-white disabled:bg-stone-300"
         >

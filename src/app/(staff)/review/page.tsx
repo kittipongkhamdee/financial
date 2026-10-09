@@ -47,6 +47,7 @@ export default function ReviewPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const isStaff = profile ? profile.role === "supply" || profile.role === "admin" : null;
+  const isAdmin = profile?.role === "admin";
 
   useEffect(() => {
     if (!masters?.round || isStaff !== true) return;
@@ -301,6 +302,7 @@ export default function ReviewPage() {
                           item={item}
                           masters={masters}
                           updateFn={updateItemAsStaff}
+                          canEditLocation={isAdmin}
                           onCancel={() => setEditingId(null)}
                           onSaved={(updated) => {
                             setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
