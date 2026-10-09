@@ -12,11 +12,18 @@ export function formatCount(value: number) {
   return new Intl.NumberFormat("th-TH").format(value);
 }
 
-/** "324" + อาคาร/ชั้น → "อาคาร 3 · ชั้น 2 · ห้อง 324" */
+/** "324" → "ห้อง 324" แต่ถ้าเป็นชื่อห้องที่ขึ้นต้นด้วย "ห้อง" อยู่แล้ว (เช่น "ห้องสมุด") ไม่เติมซ้ำ */
+export function roomLabel(room: string) {
+  return room.trim().startsWith("ห้อง") ? room : `ห้อง ${room}`;
+}
+
+/**
+ * "324" + อาคาร/ชั้น → "อาคาร 3 · ชั้น 2 · ห้อง 324"
+ * บางห้องไม่มีเลขกำกับ ใช้ชื่อห้องแทน (เช่น "ห้องสมุด") — ถ้าชื่อขึ้นต้นด้วย "ห้อง" อยู่แล้ว
+ * ไม่ต้องเติมคำว่า "ห้อง" นำหน้าซ้ำอีกชั้น (กัน "ห้อง ห้องสมุด")
+ */
 export function describeLocation(building: string, floor: string | null, room: string) {
-  return [building, floor ? `ชั้น ${floor}` : null, `ห้อง ${room}`]
-    .filter(Boolean)
-    .join(" · ");
+  return [building, floor ? `ชั้น ${floor}` : null, roomLabel(room)].filter(Boolean).join(" · ");
 }
 
 /** รับเฉพาะตัวเลขจาก input ที่ครูพิมพ์ราคา (มี comma ได้) */

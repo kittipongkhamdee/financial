@@ -19,7 +19,7 @@ import {
   unapproveItem,
   updateItemAsStaff,
 } from "@/lib/data";
-import { formatBaht } from "@/lib/format";
+import { describeLocation, formatBaht } from "@/lib/format";
 import { useMasters, useProfile } from "@/lib/hooks";
 import type { AssetConditionRow, AssetItem, AssetItemStatus } from "@/lib/types";
 
@@ -169,7 +169,7 @@ export default function ReviewPage() {
   const byRoom = useMemo(() => {
     const groups = new Map<string, AssetItem[]>();
     for (const item of filtered) {
-      const key = `${item.building} · ชั้น ${item.floor ?? "-"} · ห้อง ${item.room}`;
+      const key = describeLocation(item.building, item.floor, item.room);
       groups.set(key, [...(groups.get(key) ?? []), item]);
     }
     return [...groups.entries()];

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui";
 import { CURRENT_BE_YEAR, FLOORS, conditionToneClass } from "@/lib/constants";
 import { findByAssetCode, humanizeError, insertItem, uploadPhotoBlob } from "@/lib/data";
-import { describeLocation, parseNumber, shiftAssetCodeSerial } from "@/lib/format";
+import { describeLocation, parseNumber, roomLabel, shiftAssetCodeSerial } from "@/lib/format";
 import { compressImage } from "@/lib/image";
 import { useLastRoom, useMasters } from "@/lib/hooks";
 import { ACQUISITION_METHODS, type AcquisitionMethod } from "@/lib/types";
@@ -177,7 +177,7 @@ export default function SurveyPage() {
       if (codeEntriesRef.current[index]?.value.trim() !== trimmed) return;
       setDuplicates((dups) =>
         dups.map((d, i) =>
-          i === index ? (existing ? `เลขนี้กรอกไว้แล้ว: ${existing.name} (ห้อง ${existing.room})` : null) : d,
+          i === index ? (existing ? `เลขนี้กรอกไว้แล้ว: ${existing.name} (${roomLabel(existing.room)})` : null) : d,
         ),
       );
     } catch {
@@ -383,18 +383,18 @@ export default function SurveyPage() {
               <ChipGroup options={[...FLOORS]} value={draft.floor} onChange={(v) => set("floor", v)} />
             </Field>
             <Field
-              label="เลขห้อง"
+              label="ห้อง/สถานที่"
               required
               hint={
-                recentRooms.length > 0 ? `ล่าสุดที่คุณกรอก: ${recentRooms.join(" · ")}` : undefined
+                "ถ้าห้องไม่มีเลขกำกับ ใช้ชื่อห้องแทนได้ เช่น ห้องสมุด ห้องผู้อำนวยการ" +
+                (recentRooms.length > 0 ? ` · ล่าสุดที่คุณกรอก: ${recentRooms.join(" · ")}` : "")
               }
             >
               <input
-                inputMode="numeric"
                 className={inputClass}
                 value={draft.room}
                 onChange={(e) => set("room", e.target.value)}
-                placeholder="เช่น 324"
+                placeholder="เช่น 324 หรือ ห้องสมุด"
               />
             </Field>
             {recentRooms.length > 0 ? (

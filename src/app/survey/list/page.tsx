@@ -6,7 +6,7 @@ import { ItemEditor } from "@/components/ItemEditor";
 import { Alert, PhotoThumb, Toast, inputClass, useToast } from "@/components/ui";
 import { STATUS_BADGE, STATUS_LABEL, conditionBadgeClass } from "@/lib/constants";
 import { fetchPublicItems, humanizeError, updatePublicItem } from "@/lib/data";
-import { formatBaht } from "@/lib/format";
+import { describeLocation, formatBaht, roomLabel } from "@/lib/format";
 import { useMasters } from "@/lib/hooks";
 import type { AssetConditionRow, AssetItem } from "@/lib/types";
 
@@ -151,7 +151,7 @@ export default function PublicItemListPage() {
                 <option value="">— เลือกห้อง —</option>
                 {roomOptions.map((r) => (
                   <option key={r} value={r}>
-                    ห้อง {r}
+                    {roomLabel(r)}
                   </option>
                 ))}
               </select>
@@ -173,7 +173,7 @@ export default function PublicItemListPage() {
             <div className="mt-6">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="font-display text-sm font-semibold text-stone-700">
-                  {building} · ชั้น {floor} · ห้อง {room}{" "}
+                  {describeLocation(building, floor, room)}{" "}
                   <span className="font-normal text-stone-400">({roomItems.length})</span>
                 </h2>
                 <input
