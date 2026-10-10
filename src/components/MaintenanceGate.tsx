@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
+import { Logo } from "@/components/ui";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useSchoolSettings } from "@/lib/hooks";
 
@@ -65,7 +66,11 @@ export function MaintenanceGate({ children }: { children: React.ReactNode }) {
   if (!blocked) return <>{children}</>;
 
   return (
-    <main className="flex min-h-full flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
+    <main className="flex min-h-full flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+      <Logo path={settings?.logo_path ?? null} className="h-16 w-16" />
+      <p className="font-display text-base font-semibold text-stone-700">
+        {settings?.system_name ?? "ระบบบริหารงบประมาณโรงเรียน"}
+      </p>
       <p className="font-display text-2xl font-bold text-stone-900">ปิดระบบชั่วคราว</p>
       <p className="text-sm text-stone-600">ระบบอยู่ระหว่างปรับปรุง ขออภัยในความไม่สะดวก</p>
     </main>
