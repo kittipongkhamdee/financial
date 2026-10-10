@@ -126,4 +126,6 @@ export type SchoolSettings = {
   school_name: string | null;
   system_name: string;
   logo_path: string | null;
+  /** true = ปิดระบบชั่วคราว ทุกคนเจอข้อความปิดระบบ ใช้งานเมนูต่าง ๆ ไม่ได้ ยกเว้น admin */
+  maintenance_mode: boolean;
 };

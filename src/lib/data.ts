@@ -441,16 +441,23 @@ export async function fetchSchoolSettings(): Promise<SchoolSettings> {
   const supabase = supabaseBrowser();
   const { data, error } = await supabase
     .from("asset_school_settings")
-    .select("school_name, system_name, logo_path")
+    .select("school_name, system_name, logo_path, maintenance_mode")
     .eq("id", true)
     .maybeSingle();
 
   if (error) throw error;
-  return (data as SchoolSettings | null) ?? { school_name: null, system_name: "ระบบบริหารงบประมาณโรงเรียน", logo_path: null };
+  return (
+    (data as SchoolSettings | null) ?? {
+      school_name: null,
+      system_name: "ระบบบริหารงบประมาณโรงเรียน",
+      logo_path: null,
+      maintenance_mode: false,
+    }
+  );
 }
 
 export async function updateSchoolSettings(
-  patch: Partial<Pick<SchoolSettings, "school_name" | "system_name" | "logo_path">>,
+  patch: Partial<Pick<SchoolSettings, "school_name" | "system_name" | "logo_path" | "maintenance_mode">>,
 ): Promise<void> {
   const supabase = supabaseBrowser();
   const { error } = await supabase.from("asset_school_settings").update(patch).eq("id", true);

@@ -118,6 +118,7 @@ function GeneralPanel({ onError, onDone }: { onError: (e: string | null) => void
   const [systemName, setSystemName] = useState("");
   const [busy, setBusy] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
+  const [maintBusy, setMaintBusy] = useState(false);
 
   useEffect(() => {
     if (!settings) return;
@@ -142,6 +143,20 @@ function GeneralPanel({ onError, onDone }: { onError: (e: string | null) => void
     }
   }
 
+  async function toggleMaintenance() {
+    if (!settings) return;
+    setMaintBusy(true);
+    onError(null);
+    try {
+      await updateSchoolSettings({ maintenance_mode: !settings.maintenance_mode });
+      refetch();
+    } catch (e) {
+      onError(humanizeError(e));
+    } finally {
+      setMaintBusy(false);
+    }
+  }
+
   async function handleLogo(file: File) {
     setLogoBusy(true);
     onError(null);
@@ -160,7 +175,39 @@ function GeneralPanel({ onError, onDone }: { onError: (e: string | null) => void
   if (!settings) return <p className="text-sm text-stone-500">กำลังโหลด…</p>;
 
   return (
-    <div className="max-w-md space-y-4 rounded-xl border border-stone-200 bg-white p-4">
+    <div className="max-w-md space-y-4">
+      <div
+        className={`space-y-2 rounded-xl border p-4 ${
+          settings.maintenance_mode ? "border-rose-300 bg-rose-50" : "border-stone-200 bg-white"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <p className="font-display text-sm font-semibold text-stone-800">ปิดระบบชั่วคราว</p>
+          <span
+            className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+              settings.maintenance_mode ? "bg-rose-100 text-rose-800" : "bg-stone-200 text-stone-600"
+            }`}
+          >
+            {settings.maintenance_mode ? "ปิดอยู่" : "เปิดใช้งานปกติ"}
+          </span>
+        </div>
+        <p className="text-xs text-stone-500">
+          เปิดใช้งานแล้ว ทุกคนที่เข้าเว็บจะเห็นข้อความ &ldquo;ปิดระบบชั่วคราว&rdquo; แทนเนื้อหา
+          ใช้งานเมนูต่าง ๆ ไม่ได้ — ยกเว้นบัญชีแอดมิน (เข้าหน้านี้เพื่อเปิดกลับได้เสมอ)
+        </p>
+        <button
+          type="button"
+          disabled={maintBusy}
+          onClick={toggleMaintenance}
+          className={`rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50 ${
+            settings.maintenance_mode ? "border border-stone-300 text-stone-700" : "bg-rose-600 text-white"
+          }`}
+        >
+          <ButtonLabel busy={maintBusy}>{settings.maintenance_mode ? "เปิดระบบตามปกติ" : "ปิดระบบชั่วคราว"}</ButtonLabel>
+        </button>
+      </div>
+
+      <div className="space-y-4 rounded-xl border border-stone-200 bg-white p-4">
       <div className="flex items-center gap-3">
         <Logo path={settings.logo_path} className="h-14 w-14 rounded-lg border border-stone-200" />
         <div>
@@ -210,6 +257,7 @@ function GeneralPanel({ onError, onDone }: { onError: (e: string | null) => void
       >
         <ButtonLabel busy={busy}>บันทึก</ButtonLabel>
       </button>
+      </div>
     </div>
   );
 }

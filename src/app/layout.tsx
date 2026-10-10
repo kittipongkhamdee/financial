@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai, Sarabun } from "next/font/google";
+import { MaintenanceGate } from "@/components/MaintenanceGate";
 import "./globals.css";
 
 const sarabun = Sarabun({
@@ -37,7 +38,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" className={`${sarabun.variable} ${plexThai.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col font-sans">{children}</body>
+      <body className="flex min-h-full flex-col font-sans">
+        <MaintenanceGate>{children}</MaintenanceGate>
+      </body>
     </html>
   );
 }
